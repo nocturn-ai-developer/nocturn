@@ -1,0 +1,116 @@
+{
+  "name": "@morpheapp/nocturn",
+  "version": "0.2.0",
+  "description": "Self-hosted personal AI agent: a gateway and CLI for your terminal or server, with chat channels",
+  "type": "module",
+  "main": "desktop/main.mjs",
+  "bin": {
+    "nocturn": "bin/nocturn.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node bin/nocturn.mjs gateway run",
+    "test": "node test/smoke.mjs",
+    "desktop": "electron .",
+    "desktop:build": "electron-builder --publish never",
+    "desktop:win": "electron-builder --win --publish never",
+    "desktop:mac": "electron-builder --mac --publish never"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0"
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  },
+  "license": "UNLICENSED",
+  "keywords": [
+    "ai",
+    "agent",
+    "cli",
+    "gateway",
+    "self-hosted",
+    "telegram",
+    "claude"
+  ],
+  "files": [
+    "bin",
+    "src",
+    "public",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "nocturn": {
+    "pool": "",
+    "downloads": {
+      "windows": "https://nocturnh.com/download/Nocturn-Setup-0.2.0.exe",
+      "mac": "",
+      "android": ""
+    }
+  },
+  "build": {
+    "appId": "com.nocturnh.desktop",
+    "productName": "Nocturn",
+    "copyright": "\u00a9 Nocturn",
+    "directories": {
+      "output": "dist",
+      "buildResources": "desktop"
+    },
+    "files": [
+      "bin/**",
+      "src/**",
+      "public/**",
+      "desktop/main.mjs",
+      "desktop/icon.*",
+      "package.json"
+    ],
+    "asar": false,
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "desktop/icon.ico",
+      "artifactName": "Nocturn-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Nocturn",
+      "installerIcon": "desktop/icon.ico",
+      "uninstallerIcon": "desktop/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "desktop/icon.png",
+      "category": "public.app-category.productivity",
+      "artifactName": "Nocturn-${version}.${ext}",
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "artifactName": "Nocturn-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "desktop/icon.png",
+      "category": "Utility",
+      "artifactName": "Nocturn-${version}.${ext}"
+    }
+  }
+}

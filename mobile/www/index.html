@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Nocturn</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main class="connect">
+    <span class="mark" aria-hidden="true"></span>
+    <h1>Nocturn</h1>
+    <p class="lede">Your agent runs on your computer or server. Point this app at it.</p>
+    <form id="form" autocomplete="off">
+      <label>Gateway address<input id="url" type="url" inputmode="url" placeholder="http://100.64.0.12:18790" required></label>
+      <label>Private token<input id="token" type="password" placeholder="from nocturn dashboard" required></label>
+      <p class="error" id="error" role="alert"></p>
+      <button type="submit" class="btn">Connect</button>
+    </form>
+    <p class="help">On the computer that runs Nocturn, start the gateway with <code>NOCTURN_HOST=0.0.0.0</code> and <code>NOCTURN_TRUSTED_HOSTS=&lt;that address&gt;</code>, over a private network such as Tailscale. Read <code>nocturn dashboard</code> for the token.</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

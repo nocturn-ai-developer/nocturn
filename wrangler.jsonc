@@ -1,0 +1,15 @@
+// The public site on nocturnh.com. Build it first with: nocturn site build --out site
+// Installers live in the R2 bucket and are served at /download/<file> by worker/index.mjs.
+{
+  "name": "nocturnh",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./site", "binding": "ASSETS" },
+  "r2_buckets": [
+    { "binding": "DOWNLOADS", "bucket_name": "nocturn-downloads" }
+  ],
+  "routes": [
+    { "pattern": "nocturnh.com", "custom_domain": true },
+    { "pattern": "www.nocturnh.com", "custom_domain": true }
+  ]
+}
