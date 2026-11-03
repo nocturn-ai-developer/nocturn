@@ -738,6 +738,22 @@ function viewSettings() {
   const embBaseUrl = h('input', { type: 'text', value: emb.baseUrl ?? '', placeholder: 'Leave blank to use the provider base URL' });
   const voyageKey = h('input', { type: 'password', placeholder: emb.voyageKey ? 'Saved · leave blank to keep' : 'pa-…', autocomplete: 'off' });
   const reindex = h('button', { class: 'btn small', onclick: async (e) => { e.preventDefault(); try { const r = await api('index/rebuild', 'POST', {}); toast(`Indexed ${r.entries} chunks with ${r.provider}`, 'good'); } catch (err) { toast(err.message, 'bad'); } } }, 'Rebuild index');
+  const tr = cfg.transcription ?? {};
+  const voice = d.voice ?? {};
+  const trProvider = select([['auto', 'Automatic (whisper.cpp if installed, else an endpoint)'], ['whisper-cpp', 'whisper.cpp on this machine'], ['openai', 'OpenAI-compatible endpoint'], ['off', 'Off']], tr.provider ?? 'auto');
+  const trBaseUrl = h('input', { type: 'text', value: tr.baseUrl ?? '', placeholder: 'https://api.openai.com/v1 or http://localhost:8000/v1' });
+  const trKey = h('input', { type: 'password', placeholder: tr.key ? 'Saved · leave blank to keep' : 'Optional for local servers', autocomplete: 'off' });
+  const trModel = h('input', { type: 'text', value: tr.model ?? '', placeholder: 'whisper-1, or a ggml model path for whisper.cpp' });
+  const trCommand = h('input', { type: 'text', value: tr.command ?? '', placeholder: 'whisper-cli -m {model} -f {file} -nt -np' });
+  const trLanguage = h('input', { type: 'text', value: tr.language ?? '', placeholder: 'en (blank = detect)' });
+  const voiceBox = h('div', { class: 'provider-box' },
+    h('p', { class: 'small-text' }, 'In use now: ', h('b', {}, voice.ready ? `${voice.provider} · ${voice.model}` : 'off'), voice.note ? h('span', { class: 'muted' }, ` · ${voice.note}`) : null),
+    h('label', { class: 'field' }, h('span', {}, 'Voice backend'), trProvider, h('small', {}, 'Voice notes from Telegram and audio files from Discord are transcribed before the agent reads them. whisper.cpp keeps audio on this machine and needs ffmpeg on PATH.')),
+    h('label', { class: 'field' }, h('span', {}, 'Endpoint base URL'), trBaseUrl),
+    h('label', { class: 'field' }, h('span', {}, 'Endpoint API key'), trKey),
+    h('label', { class: 'field' }, h('span', {}, 'Model'), trModel),
+    h('label', { class: 'field' }, h('span', {}, 'whisper.cpp command'), trCommand, h('small', {}, '{file} is the 16 kHz wav, {model} is the model field. Leave blank to call whisper-cli on PATH.')),
+    h('label', { class: 'field' }, h('span', {}, 'Language'), trLanguage));
   const searchBox = h('div', { class: 'provider-box' },
     h('p', { class: 'small-text' }, 'In use now: ', h('b', {}, `${search.provider ?? '?'} · ${search.model ?? ''}`), ` · ${search.entries ?? 0} chunks indexed`, search.note ? h('span', { class: 'muted' }, ` · ${search.note}`) : null),
     h('label', { class: 'field' }, h('span', {}, 'Embedding backend'), embProvider, h('small', {}, 'Sharpest: Voyage voyage-3-large (cloud) or Ollama bge-m3 / nomic-embed-text (local, private). The built-in backend needs nothing but matches on words, not meaning.')),
@@ -769,6 +785,7 @@ function viewSettings() {
       openaiBaseUrl: openaiBaseUrl.value.trim() || cfg.openaiBaseUrl, openaiModel: openaiModel.value.trim(),
       persona: persona.value.trim() || cfg.persona,
       embeddings: { provider: embProvider.value, model: embModel.value.trim(), baseUrl: embBaseUrl.value.trim(), ...(voyageKey.value.trim() ? { voyageKey: voyageKey.value.trim() } : {}) },
+      transcription: { provider: trProvider.value, baseUrl: trBaseUrl.value.trim(), model: trModel.value.trim(), command: trCommand.value.trim(), language: trLanguage.value.trim(), ...(trKey.value.trim() ? { key: trKey.value.trim() } : {}) },
       policies: Object.fromEntries(Object.entries(policies).map(([tool, sel]) => [tool, sel.value])),
     };
     if (anthropicKey.value.trim()) patch.anthropicKey = anthropicKey.value.trim();
@@ -780,6 +797,8 @@ function viewSettings() {
       h('label', { class: 'field' }, h('span', {}, 'Provider'), provider),
       anthropicBox, openaiBox,
       h('label', { class: 'field' }, h('span', {}, 'Persona'), persona, h('small', {}, 'The first line of the system prompt.'))),
+    h('div', { class: 'section-title' }, 'Voice notes'),
+    h('div', { class: 'card' }, voiceBox),
     h('div', { class: 'section-title' }, 'Semantic search'),
     h('div', { class: 'card' }, searchBox),
     h('div', { class: 'section-title' }, 'Tool permissions'),

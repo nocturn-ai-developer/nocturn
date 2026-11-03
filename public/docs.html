@@ -302,6 +302,16 @@ Keep each line under 15 words.</code></pre>
 <pre><code><span class="p">$</span> nocturn memory add "I prefer short answers"
 <span class="p">$</span> nocturn memory list
 <span class="p">$</span> nocturn memory rm &lt;id&gt;</code></pre>
+        <h3 id="voice-notes">Voice notes</h3>
+        <p>A voice note on Telegram, or an audio file dropped in Discord, is turned into text before the agent sees it, and the agent's answer comes back as a normal message. Strangers still get the pairing code first; nothing is downloaded until a sender is allowed. Recordings are capped at 25 MB.</p>
+        <div class="table-wrap"><table>
+          <tr><th>Backend</th><th>Setup</th><th>Notes</th></tr>
+          <tr><td>whisper.cpp</td><td>Put <code>whisper-cli</code> and <code>ffmpeg</code> on PATH, download a model such as <code>ggml-base.bin</code> or <code>ggml-large-v3-turbo.bin</code>, set its path in Settings → Model.</td><td>Audio never leaves the machine. A custom command works too: <code>{file}</code> is the 16 kHz wav, <code>{model}</code> the model path.</td></tr>
+          <tr><td>OpenAI-compatible endpoint</td><td>Set the base URL and key in Settings, or rely on your OpenAI provider key.</td><td>The Whisper API, or a local server such as faster-whisper or speaches at <code>http://localhost:8000/v1</code>. Model defaults to <code>whisper-1</code>.</td></tr>
+        </table></div>
+<pre><code><span class="p">$</span> nocturn transcribe note.ogg
+<span class="p">$</span> nocturn status        # the Voice line shows which backend is in use</code></pre>
+        <p>The HTTP API has <code>POST /api/transcribe</code> with <code>{ "audio": "&lt;base64&gt;", "name": "note.ogg", "mime": "audio/ogg" }</code>. Transcribed text reaches the model prefixed with “(Voice note, transcribed)”, so it knows the words came through speech.</p>
         <h3 id="semantic-search">Semantic search</h3>
         <p>The gateway keeps a search index over every memory and every text file in the workspace (<code>index.json</code> and <code>index.vec</code> in the data folder). Each chunk of about 700 characters gets an embedding and a BM25 entry. A query is ranked both ways and the two rankings are fused by reciprocal rank, so a paraphrase finds the right note and an exact file name, number or identifier still wins. The index refreshes after every file write and memory change, and every ten minutes; only changed chunks are embedded again.</p>
         <p>Embeddings come from the best backend available, chosen automatically unless you pick one in Settings:</p>

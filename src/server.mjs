@@ -6,6 +6,7 @@ import { AUTH_TOKEN, DATA_DIR, PUBLIC_DIR, SKILLS_DIR, config, redactedConfig, u
 import { sessions, validSessionId } from './agent.mjs';
 import { memory, searchIndex, skills, toolNames } from './tools.mjs';
 import { embedder, snippet } from './embeddings.mjs';
+import { transcriber } from './transcribe.mjs';
 import { partners } from './partners.mjs';
 import { checkWalletProof } from './wallet-proof.mjs';
 
@@ -97,6 +98,7 @@ export function startServer({ agent, channels, scheduler, port, host = '127.0.0.
     skills: skills.list(),
     memory: memory.list(),
     search: { ...embedder.status, entries: searchIndex.size, updated: searchIndex.index.updated ?? null },
+    voice: transcriber.status,
     credentials: {
       anthropic: Boolean(config.anthropicKey || process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN),
       openai: Boolean(config.openaiModel),
@@ -123,6 +125,7 @@ export function startServer({ agent, channels, scheduler, port, host = '127.0.0.
       updateConfig(body);
       if (body.channels) channels.restart();
       if (body.embeddings) { embedder.reset(); searchIndex.schedule(200); }
+      if (body.transcription) { transcriber.reset(); transcriber.decide().catch(() => {}); }
       return send(res, 200, state());
     }
 
@@ -131,6 +134,12 @@ export function startServer({ agent, channels, scheduler, port, host = '127.0.0.
       if (searchIndex.size === 0) await searchIndex.refresh();
       const hits = await searchIndex.search(str(query, 'query', 2000), { kinds: Array.isArray(kinds) ? kinds : ['memory', 'file'], limit: 10 });
       return send(res, 200, hits.map((h) => ({ kind: h.kind, path: h.path, pos: h.pos, score: h.score, similarity: h.similarity, snippet: snippet(h.text, query) })));
+    }
+    // Transcribes a recording sent as base64, for the CLI and for checking a backend.
+    if (resource === 'transcribe' && method === 'POST') {
+      const { audio, name, mime } = await readBody(req);
+      const bytes = Buffer.from(str(audio, 'audio', 40 * 1024 * 1024), 'base64');
+      try { return send(res, 200, { text: await transcriber.transcribe(bytes, typeof name === 'string' ? name : 'voice.ogg', typeof mime === 'string' ? mime : 'audio/ogg'), ...transcriber.status }); } catch (err) { throw new HttpError(502, err.message); }
     }
     if (resource === 'index' && method === 'POST') {
       if (id === 'rebuild') embedder.reset();

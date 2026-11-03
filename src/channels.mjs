@@ -1,5 +1,17 @@
 import { randomInt } from 'node:crypto';
 import { config, updateConfig } from './config.mjs';
+import { transcriber } from './transcribe.mjs';
+
+const MAX_AUDIO = 25 * 1024 * 1024;
+
+// Downloads an attachment only once the sender is allowed, so strangers cost nothing.
+async function download(url, headers = {}) {
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(60000) });
+  if (!res.ok) throw new Error(`download failed (${res.status})`);
+  const bytes = Buffer.from(await res.arrayBuffer());
+  if (bytes.length > MAX_AUDIO) throw new Error('the recording is larger than 25 MB');
+  return bytes;
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -30,8 +42,18 @@ class Telegram {
         for (const update of await this.#call('getUpdates', { offset, timeout: 25 })) {
           offset = update.update_id + 1;
           const m = update.message;
-          if (!m?.text || m.chat.type !== 'private') continue;
-          this.hub.inbound(this.name, String(m.from.id), String(m.chat.id), m.text);
+          if (!m || m.chat.type !== 'private') continue;
+          const audio = m.voice ?? m.audio ?? m.video_note ?? null;
+          if (m.text) this.hub.inbound(this.name, String(m.from.id), String(m.chat.id), m.text);
+          else if (audio) {
+            const name = audio.file_name ?? (m.voice ? 'voice.ogg' : m.video_note ? 'note.mp4' : 'audio.mp3');
+            const mime = audio.mime_type ?? (m.voice ? 'audio/ogg' : 'application/octet-stream');
+            const fetchBytes = async () => {
+              const { file_path: path } = await this.#call('getFile', { file_id: audio.file_id });
+              return download(`${this.base.replace('/bot', '/file/bot')}/${path}`);
+            };
+            this.hub.inbound(this.name, String(m.from.id), String(m.chat.id), m.caption ?? '', { kind: 'audio', name, mime, seconds: audio.duration, fetch: fetchBytes });
+          }
         }
       } catch (err) {
         if (this.stopped) return;
@@ -80,8 +102,11 @@ class Discord {
         } else if (t === 'MESSAGE_CREATE' && !d.author.bot) {
           const mention = new RegExp(`<@!?${this.botId}>`, 'g');
           const direct = !d.guild_id;
-          if (!direct && !mention.test(d.content)) return;
-          this.hub.inbound(this.name, d.author.id, d.channel_id, d.content.replace(mention, '').trim());
+          const audio = (d.attachments ?? []).find((a) => /^audio\//.test(a.content_type ?? '') || /\.(ogg|mp3|m4a|wav|webm|opus)$/i.test(a.filename ?? ''));
+          if (!direct && !mention.test(d.content) && !audio) return;
+          const text = d.content.replace(mention, '').trim();
+          if (audio) this.hub.inbound(this.name, d.author.id, d.channel_id, text, { kind: 'audio', name: audio.filename, mime: audio.content_type ?? 'application/octet-stream', fetch: () => download(audio.url) });
+          else this.hub.inbound(this.name, d.author.id, d.channel_id, text);
         } else if (op === 7 || op === 9) {
           ws.close();
         }
@@ -185,7 +210,8 @@ export class ChannelHub {
   }
 
   // Unknown senders never reach the agent: they get a code the owner must approve.
-  async inbound(channel, sender, chat, text) {
+  // `attachment` is an optional { kind: 'audio', name, mime, fetch } that becomes text first.
+  async inbound(channel, sender, chat, text, attachment = null) {
     const adapter = this.active.get(channel);
     if (!adapter) return;
     if (!config.channels[channel].allow.includes(sender)) {
@@ -198,6 +224,17 @@ export class ChannelHub {
       }
       await adapter.send(chat, `This Nocturn is private. Pairing code: ${code}. Ask its owner to approve it.`).catch(() => {});
       return;
+    }
+    if (attachment?.kind === 'audio') {
+      try {
+        if (!(await transcriber.decide()) || transcriber.status.provider === 'off') throw new Error('no transcription backend is set up on the gateway');
+        const spoken = await transcriber.transcribe(await attachment.fetch(), attachment.name, attachment.mime);
+        text = `${text ? `${text.trim()}\n\n` : ''}(Voice note, transcribed) ${spoken}`;
+        this.agent.emit('event', { type: 'transcribed', sessionId: `${channel}:${chat}`, text: spoken });
+      } catch (err) {
+        await adapter.send(chat, `I could not hear that one: ${err.message}.`).catch(() => {});
+        return;
+      }
     }
     const answer = text.trim().match(/^\/(approve|deny)$/i);
     if (answer) {

@@ -270,7 +270,7 @@ async function cmdStatus(_, flags) {
     channels: s.channelStatus, sessions: s.sessions.length, running: s.running.length,
     jobs: s.jobs.length, memories: s.memory.length, skills: s.skills.length,
     pendingApprovals: s.approvals.length, pendingPairing: s.pairing.length,
-    search: s.search ?? null,
+    search: s.search ?? null, voice: s.voice ?? null,
   };
   out(flags, report, (r) => {
     const row = (label, value) => console.log(`  ${dim(label.padEnd(10))} ${value}`);
@@ -282,6 +282,7 @@ async function cmdStatus(_, flags) {
     row('Cron jobs', String(r.jobs));
     row('Memory', `${r.memories}  ${dim('Skills')} ${r.skills}`);
     if (r.search) row('Search', `${r.search.provider} ${dim(r.search.model)}  ${r.search.ready ? good(`✓ ${r.search.entries} chunks`) : bad('✗ not ready')}${r.search.note ? `  ${dim(clean(r.search.note))}` : ''}`);
+    if (r.voice) row('Voice', r.voice.ready ? `${r.voice.provider} ${dim(r.voice.model)}  ${good('✓ voice notes become text')}` : `${dim('off')}  ${dim(clean(r.voice.note))}`);
     if (r.pendingApprovals) row('Waiting', pink(`${r.pendingApprovals} approval(s): nocturn approvals list`));
     if (r.pendingPairing) row('Waiting', pink(`${r.pendingPairing} pairing request(s): nocturn pairing list`));
   });
@@ -553,6 +554,17 @@ async function cmdSearch(positional, flags) {
   });
 }
 
+// Transcribes a recording through the gateway's voice backend, to check it works.
+async function cmdTranscribe([file], flags) {
+  if (!file) throw new CliError('Usage: nocturn transcribe <audio file> [--json]');
+  if (!existsSync(file)) throw new CliError(`No such file: ${file}`);
+  const bytes = readFileSync(file);
+  const name = file.split(/[\\/]/).pop();
+  const mime = /\.ogg$|\.opus$/i.test(name) ? 'audio/ogg' : /\.mp3$/i.test(name) ? 'audio/mpeg' : /\.wav$/i.test(name) ? 'audio/wav' : /\.m4a$/i.test(name) ? 'audio/mp4' : 'application/octet-stream';
+  const result = await api('transcribe', 'POST', { audio: bytes.toString('base64'), name, mime });
+  out(flags, result, (r) => { console.log(dim(`${r.provider} · ${r.model}`)); console.log(clean(r.text)); });
+}
+
 async function cmdIndex([sub], flags) {
   const result = await api(sub === 'rebuild' ? 'index/rebuild' : 'index', 'POST', {});
   out(flags, result, (r) => console.log(`${good('✓')} ${r.entries} chunks indexed, ${r.embedded} embedded just now  ${dim(`${r.provider} · ${r.model}`)}`));
@@ -797,6 +809,7 @@ ${bold('Automation and knowledge')}
   nocturn skills list|rm
   nocturn search "question"           Find memories and files by meaning
   nocturn index [rebuild]             Refresh the search index
+  nocturn transcribe <file>           Turn a recording into text (voice notes do this automatically)
 
 ${bold('Mining')}
   nocturn mine [--threads N]          Mine ${TICKER} in this terminal, ctrl+c stops
@@ -812,7 +825,7 @@ const COMMANDS = {
   gateway: cmdGateway, status: cmdStatus, doctor: cmdDoctor, onboard: cmdOnboard, setup: cmdOnboard,
   agent: cmdAgent, chat: cmdChat, tui: cmdChat, message: cmdMessage, sessions: cmdSessions,
   channels: cmdChannels, pairing: cmdPairing, approvals: cmdApprovals, cron: cmdCron,
-  memory: cmdMemory, skills: cmdSkills, search: cmdSearch, index: cmdIndex, config: cmdConfig, dashboard: cmdDashboard, mine: cmdMine, pool: cmdPool, site: cmdSite,
+  memory: cmdMemory, skills: cmdSkills, search: cmdSearch, index: cmdIndex, transcribe: cmdTranscribe, config: cmdConfig, dashboard: cmdDashboard, mine: cmdMine, pool: cmdPool, site: cmdSite,
   logs: (_, flags) => tailLog(flags),
 };
 

@@ -219,6 +219,60 @@ await check('search index ranks the right file and memory first, by meaning and 
   assert.equal(searchIndex.size, changed.entries);
 });
 
+await check('a voice note is transcribed before it reaches the agent, and strangers are not downloaded', async () => {
+  const { transcriber } = await import('../src/transcribe.mjs');
+  // A fake OpenAI-compatible /audio/transcriptions server.
+  const heard = [];
+  const stt = createServer(async (req, res) => {
+    const parts = [];
+    for await (const d of req) parts.push(d);
+    heard.push({ url: req.url, auth: req.headers.authorization, size: Buffer.concat(parts).length, type: req.headers['content-type'] });
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ text: 'Remind me to call the supplier tomorrow at nine.' }));
+  });
+  await new Promise((r) => stt.listen(0, '127.0.0.1', r));
+  updateConfig({ transcription: { provider: 'openai', baseUrl: `http://127.0.0.1:${stt.address().port}/v1`, key: 'stt-key' } });
+  transcriber.reset();
+  assert.equal(await transcriber.decide(), 'openai');
+
+  const sent = [];
+  channels.active.set('telegram', { send: async (chat, text) => { sent.push(text); } });
+  let downloads = 0;
+  const attachment = { kind: 'audio', name: 'voice.ogg', mime: 'audio/ogg', fetch: async () => { downloads++; return Buffer.alloc(4096, 1); } };
+  // A stranger sends a voice note: pairing code, no download, no transcription.
+  await channels.inbound('telegram', 'voice-stranger', '77', '', attachment);
+  assert.equal(downloads, 0);
+  assert.equal(heard.length, 0);
+  assert.ok(sent.at(-1).includes('Pairing code'));
+  // The owner sends one: it is transcribed and the model gets the words.
+  updateConfig({ channels: { telegram: { allow: ['voice-stranger'] } } });
+  script = [[[{ type: 'text', text: 'Scheduled.' }], 'end_turn']];
+  const before = requests.length;
+  await channels.inbound('telegram', 'voice-stranger', '77', '', attachment);
+  assert.equal(downloads, 1);
+  assert.equal(heard.length, 1);
+  assert.ok(heard[0].url.endsWith('/v1/audio/transcriptions'));
+  assert.equal(heard[0].auth, 'Bearer stt-key');
+  assert.ok(heard[0].type.startsWith('multipart/form-data'));
+  assert.equal(requests.length, before + 1);
+  const lastUser = requests.at(-1).messages.at(-1).content;
+  assert.ok(lastUser.includes('(Voice note, transcribed) Remind me to call the supplier tomorrow at nine.'), lastUser);
+  assert.equal(sent.at(-1), 'Scheduled.');
+  // The API route and the status line.
+  const viaApi = await (await call('transcribe', 'POST', { audio: Buffer.alloc(10).toString('base64'), name: 'a.ogg', mime: 'audio/ogg' })).json();
+  assert.equal(viaApi.text, 'Remind me to call the supplier tomorrow at nine.');
+  assert.equal((await (await call('state')).json()).voice.provider, 'openai');
+  // With the backend off, the sender is told instead of silently ignored.
+  updateConfig({ transcription: { provider: 'off' } });
+  transcriber.reset();
+  await channels.inbound('telegram', 'voice-stranger', '77', '', attachment);
+  assert.ok(sent.at(-1).startsWith('I could not hear that one'));
+  updateConfig({ transcription: { provider: 'auto', baseUrl: '' }, channels: { telegram: { allow: [] } } });
+  transcriber.reset();
+  channels.active.delete('telegram');
+  stt.close();
+});
+
 await check('cron expressions match correctly', async () => {
   const mondayEight = new Date(2026, 10, 2, 8, 0);
   assert.ok(cronMatches('0 8 * * 1-5', mondayEight));

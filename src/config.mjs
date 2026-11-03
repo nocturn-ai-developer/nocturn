@@ -37,6 +37,7 @@ const DEFAULTS = {
     schedule_task: 'ask', send_message: 'ask',
   },
   embeddings: { provider: 'auto', model: '', baseUrl: '', voyageKey: '' },
+  transcription: { provider: 'auto', baseUrl: '', key: '', model: '', command: '', language: '' },
   channels: {
     telegram: { enabled: false, token: '', allow: [] },
     discord: { enabled: false, token: '', allow: [] },
@@ -45,7 +46,7 @@ const DEFAULTS = {
 };
 
 const CONFIG_FILE = join(DATA_DIR, 'config.json');
-const SECRET_KEYS = new Set(['anthropicKey', 'openaiKey', 'token', 'botToken', 'appToken', 'voyageKey']);
+const SECRET_KEYS = new Set(['anthropicKey', 'openaiKey', 'token', 'botToken', 'appToken', 'voyageKey', 'key']);
 
 function merge(base, patch) {
   const out = { ...base };
