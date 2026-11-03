@@ -606,6 +606,16 @@ const thisPlatform = () => PLATFORMS.find((p) => p.test()) ?? null;
 export function downloadButton(className = 'btn primary') {
   const platform = thisPlatform();
   const button = el('a', className, platform ? `Download for ${platform.name}` : 'Download the app');
+  if (className.includes('primary')) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('class', 'btn-icon');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M12 4v11m0 0l-4-4m4 4l4-4M5 20h14');
+    svg.append(path);
+    button.prepend(svg);
+  }
   button.href = '#download';
   button.addEventListener('click', (e) => {
     if (button.dataset.direct) return;
