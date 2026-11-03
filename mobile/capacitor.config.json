@@ -1,0 +1,14 @@
+{
+  "appId": "com.nocturnh.mobile",
+  "appName": "Nocturn",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0e0e11"
+  }
+}

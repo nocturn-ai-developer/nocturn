@@ -1,0 +1,20 @@
+{
+  "name": "nocturn-mobile",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Nocturn for Android: a client for the gateway you run on your computer or server",
+  "scripts": {
+    "android:add": "cap add android",
+    "icons": "capacitor-assets generate --android --iconBackgroundColor #111113 --iconBackgroundColorDark #111113 --splashBackgroundColor #ffffff --splashBackgroundColorDark #0e0e11",
+    "sync": "cap sync android",
+    "open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/core": "^7.4.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.4.0"
+  }
+}

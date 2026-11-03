@@ -1,0 +1,21 @@
+@font-face { font-family: "Manrope"; src: url("manrope.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("jetbrains-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+:root { color-scheme: light dark; --bg: #ffffff; --text: #111113; --soft: #2e2e33; --muted: #6b6b73; --line: #e6e6e9; --line-strong: #cfcfd4; --surface: #ffffff; --on-text: #ffffff; --accent: #8b3dff; --bad: #d64562; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e0e11; --text: #f2f2f4; --soft: #cfcfd5; --muted: #8f8f98; --line: #26262c; --line-strong: #38383f; --surface: #141418; --on-text: #0e0e11; --bad: #ef6b84; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font: 15px/1.55 "Manrope", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.connect { display: flex; flex-direction: column; gap: 14px; max-width: 420px; min-height: 100vh; margin: 0 auto; padding: max(64px, env(safe-area-inset-top) + 48px) 24px 40px; }
+.mark { display: block; width: 52px; height: 42px; background: currentColor; -webkit-mask: url("logo.png") center / contain no-repeat; mask: url("logo.png") center / contain no-repeat; }
+h1 { margin: 6px 0 0; font-size: 34px; font-weight: 500; letter-spacing: -.03em; }
+.lede { margin: 0 0 18px; color: var(--soft); }
+form { display: flex; flex-direction: column; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+input { width: 100%; padding: 13px 16px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--surface); color: var(--text); font: 15px "JetBrains Mono", monospace; }
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn { margin-top: 6px; padding: 14px 22px; border: 1px solid var(--text); border-radius: 999px; background: var(--text); color: var(--on-text); font: 700 12px "Manrope", sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.btn:disabled { opacity: .5; }
+.error { min-height: 1.3em; margin: 0; color: var(--bad); font-size: 13px; }
+.help { margin-top: auto; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+code { font: 12px "JetBrains Mono", monospace; }

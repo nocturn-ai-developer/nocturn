@@ -1,0 +1,9 @@
+node_modules/
+.data/
+dist/
+site/
+.wrangler/
+.claude/
+mobile/node_modules/
+mobile/android/
+*.log

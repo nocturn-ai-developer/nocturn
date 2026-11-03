@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Nocturn Docs · Install, run, and control your agent</title>
+  <meta name="description" content="Everything about Nocturn: what nocturnh.com is, how the gateway works, every CLI command, chat channels, tools and permissions, the HTTP API, mining, configuration, and troubleshooting.">
+  <meta property="og:title" content="Nocturn Docs">
+  <meta property="og:description" content="Install, run, and control the Nocturn agent from your terminal, your chat apps, or the desktop app.">
+  <meta property="og:url" content="https://nocturnh.com/docs.html">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/icon.png" type="image/png">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/docs.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-start">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>NOCTURN</a>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><b>Docs</b></nav>
+    </div>
+    <div class="topbar-end">
+      <button id="toc-toggle" class="toc-toggle" type="button" aria-expanded="false" aria-controls="sidebar">Contents</button>
+      <button id="theme" class="theme-btn" type="button"><span aria-hidden="true">☾</span></button>
+      <a class="home-link" href="/#download">Download</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside id="sidebar" class="sidebar">
+      <label class="search">
+        <span class="sr-only">Search the docs</span>
+        <input id="search" type="search" placeholder="Search sections" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+      <nav aria-label="Documentation">
+        <ol id="toc" class="toc"></ol>
+        <p id="toc-empty" class="toc-empty">Nothing matches. Try another word.</p>
+      </nav>
+      <div class="sidebar-foot">Nocturn 0.2 · <a href="https://www.npmjs.com/package/@morpheapp/nocturn" rel="noopener noreferrer" target="_blank">npm</a> · <a href="/">nocturnh.com</a></div>
+    </aside>
+
+    <main class="content">
+      <div class="page-head">
+        <span class="kicker">Documentation</span>
+        <h1>Run an AI agent on a machine you control</h1>
+        <p class="lede">Nocturn is a self-hosted personal AI agent with a built-in CPU miner. One gateway runs on your computer or server, you drive it from the terminal, the desktop app, or your chat apps, and it asks before doing anything risky. These pages cover all of it, from the first install to the HTTP API.</p>
+      </div>
+
+      <!-- 01 -->
+      <section class="doc" id="what-this-website-is">
+        <h2>What this website is</h2>
+        <p><strong>nocturnh.com is the product page and documentation for Nocturn.</strong> It is a static site. No agent runs here, no account exists here, and nothing you type on this site is sent to a server. The home page shows what Nocturn does, with a scripted demo that calls no model and no tool, and this page explains how to use it.</p>
+        <div class="cards">
+          <div class="card"><span class="n">01</span><b>Public site</b><p>The page you are reading, served from Cloudflare. The Connect wallet button only asks your browser wallet to switch to Robinhood Chain. Nothing is signed and nothing is sent.</p></div>
+          <div class="card"><span class="n">02</span><b>Your dashboard</b><p>The same page, served by your own gateway at <code>127.0.0.1:18790</code> with a private token. There it also edits the Trusted by list and links a wallet to your miner.</p></div>
+          <div class="card"><span class="n">03</span><b>The product</b><p>Nocturn itself is an npm package: a gateway, a CLI, chat channel adapters, a scheduler, a miner, and a pool server. It lives on your machine, never on this site.</p></div>
+        </div>
+        <p>So, if you came here wondering what the site does: it tells you about Nocturn and gives you the install command. The real work happens after you run that command on your own computer or server.</p>
+        <div class="note tip"><i>i</i><p>The link printed by <code>nocturn dashboard</code> contains your token. Treat it like a password and never paste it anywhere public.</p></div>
+      </section>
+
+      <!-- 02 -->
+      <section class="doc" id="overview">
+        <h2>Overview and architecture</h2>
+        <p>Everything is one Node process called the <strong>gateway</strong>, plus a thin CLI that talks to it over HTTP. There is no database and no cloud account. State is JSON files in one folder.</p>
+        <h3>The parts</h3>
+        <div class="cards">
+          <div class="card"><b>Gateway</b><p>An HTTP server on <code>127.0.0.1:18790</code>. Serves the dashboard, exposes the API, streams events, and owns everything below.</p></div>
+          <div class="card"><b>Agent</b><p>The loop that sends your conversation to the model, runs the tools it asks for, and pauses for approval when a tool needs it.</p></div>
+          <div class="card"><b>CLI</b><p><code>nocturn</code>. Starts and stops the gateway, chats, manages channels, jobs, memory, skills, and config by calling the API.</p></div>
+          <div class="card"><b>Channels</b><p>Telegram, Discord, and Slack adapters. Each inbound chat becomes a session; replies and approval questions go back to the same chat.</p></div>
+          <div class="card"><b>Scheduler</b><p>Cron jobs that run a prompt on a schedule and can deliver the reply to a chat.</p></div>
+          <div class="card"><b>Tools</b><p>Files, shell, web fetch, headless browser, memory, skills, schedules, and outbound messages, each with its own permission policy.</p></div>
+          <div class="card"><b>Miner</b><p><code>nocturn mine</code>. Hashes SHA-256 on worker threads, auto-tunes thread count by temperature, and reports shares to a pool.</p></div>
+          <div class="card"><b>Pool</b><p><code>nocturn pool run</code>. Hands out jobs each round, verifies shares, and splits the round reward by work done.</p></div>
+        </div>
+        <h3>How a message flows</h3>
+        <ol class="flow">
+          <li><div><b>You send text</b><span>From <code>nocturn chat</code>, the dashboard, a Telegram message, or a cron job. It lands on <code>POST /api/sessions/:id/messages</code>.</span></div></li>
+          <li><div><b>The agent calls the model</b><span>Anthropic by default, with adaptive thinking, or any OpenAI-compatible endpoint such as Ollama. Text streams out as events while it is generated.</span></div></li>
+          <li><div><b>The model asks for tools</b><span>Each tool call is validated, then checked against its policy. <code>auto</code> runs now, <code>ask</code> waits for you, <code>deny</code> is refused.</span></div></li>
+          <li><div><b>You approve or deny</b><span>In the terminal, with <code>nocturn approvals</code>, in the dashboard, or by replying <code>/approve</code> in the chat that started the run. A question times out after 10 minutes.</span></div></li>
+          <li><div><b>Results go back to the model</b><span>Up to 40 steps per turn. When the model stops asking for tools, the final text is the reply, and the whole conversation is saved to disk.</span></div></li>
+        </ol>
+        <h3>The data folder</h3>
+        <p>Everything lives in <code>~/.nocturn</code> (or wherever <code>NOCTURN_HOME</code> points). Keys are stored in plain text. Never commit or share this folder.</p>
+<pre class="tree"><code><span class="d">~/.nocturn/</span>
+├── config.json      <span class="c">provider, model, keys, persona, policies, channels</span>
+├── token            <span class="c">the bearer token for the API and the dashboard link</span>
+├── memory.json      <span class="c">saved memories, one entry per line of the system prompt</span>
+├── jobs.json        <span class="c">cron jobs with their last run and status</span>
+├── partners.json    <span class="c">the Trusted by list shown on the home page</span>
+├── wallet.json      <span class="c">the signed wallet proof, if you linked one</span>
+├── miner.json       <span class="c">miner name, pool address, pool token</span>
+├── pool.json        <span class="c">accounts and balances, only if you host a pool</span>
+├── gateway.pid      <span class="c">pid of the background gateway</span>
+├── gateway.log      <span class="c">its log, read with nocturn gateway logs</span>
+├── browser/         <span class="c">the headless browser profile</span>
+├── sessions/        <span class="c">one JSON file per conversation</span>
+└── <span class="d">workspace/</span>       <span class="c">the only folder the file tools can touch</span>
+    └── skills/      <span class="c">one folder per skill, each with SKILL.md</span></code></pre>
+      </section>
+
+      <!-- 03 -->
+      <section class="doc" id="install">
+        <h2>Install</h2>
+        <p>Nocturn needs <strong>Node 22 or newer</strong> and a model: a Claude API key, or any OpenAI-compatible endpoint. Install it once from npm, then run the guided setup.</p>
+        <h3>Linux and macOS</h3>
+<pre><code><span class="p">$</span> npm install -g @morpheapp/nocturn
+<span class="p">$</span> nocturn onboard</code></pre>
+        <h3>Windows</h3>
+        <p>PowerShell blocks the <code>.ps1</code> shims that npm installs, so call the <code>.cmd</code> versions.</p>
+<pre><code><span class="p">$</span> npm.cmd install -g @morpheapp/nocturn
+<span class="p">$</span> nocturn.cmd onboard</code></pre>
+        <p>If you would rather use the short names, allow local scripts once for your account and open a new terminal:</p>
+<pre><code><span class="p">$</span> Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code></pre>
+        <h3>What onboard does</h3>
+        <ol class="flow">
+          <li><div><b>Picks a provider</b><span><code>anthropic</code> or an OpenAI-compatible endpoint. For Anthropic it asks for the key and a model name; for OpenAI it asks for the base URL, model name, and an optional key.</span></div></li>
+          <li><div><b>Optionally connects Telegram</b><span>Paste a bot token from BotFather. You can add Discord and Slack later with <code>nocturn channels add</code>.</span></div></li>
+          <li><div><b>Starts the gateway</b><span>In the background, and offers to install it as a login service so it survives reboots.</span></div></li>
+        </ol>
+        <p>Check that everything is healthy with <code>nocturn doctor</code>, then talk to it with <code>nocturn chat</code>.</p>
+        <h3 id="apps">Desktop and mobile apps</h3>
+        <p>You do not have to live in the terminal. The <a href="/#download">Download section</a> of the home page has installers for each platform.</p>
+        <div class="cards">
+          <div class="card"><b>Nocturn Desktop · Windows and macOS</b><p>An Electron app in the <code>desktop/</code> folder of the repository. It starts the gateway when it launches and opens the dashboard in its own window, so one double-click gives you the whole product. Windows gets an <code>.exe</code> installer, macOS a <code>.dmg</code>.</p></div>
+          <div class="card"><b>Nocturn for Android</b><p>Built as an <code>.apk</code> from the <code>mobile/</code> folder through GitHub Actions. It is a remote client: you enter the address and token of a gateway you run elsewhere, reached through an SSH tunnel, and the dashboard opens in the app.</p></div>
+          <div class="card"><b>Installable web app</b><p>Open <code>/panel.html</code> on your own gateway and add it to the home screen of any phone. Like the Android app, it talks to a gateway on a computer or server.</p></div>
+        </div>
+        <div class="note warn"><i>!</i><p>The gateway itself needs Node and runs on a computer or a server, never on the phone. The mobile apps control a gateway; they do not contain one.</p></div>
+      </section>
+
+      <!-- 04 -->
+      <section class="doc" id="cli">
+        <h2>Command line</h2>
+        <p>Every command calls the gateway's API with the token from <code>~/.nocturn/token</code>. If the gateway is not running, most commands tell you so. Add <code>--json</code> to any listing command for machine-readable output, and <code>--version</code> prints the version.</p>
+        <h3>Setup</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>nocturn onboard</code></td><td>Guided setup: provider, key, model, optional Telegram, gateway start, optional login service. <code>nocturn setup</code> is an alias.</td></tr>
+          <tr><td><code>nocturn doctor</code></td><td>Checks Node version, dependencies, the state folder, the gateway, the model key, and each enabled channel. Exits 1 if something fails.</td></tr>
+          <tr><td><code>nocturn config get [key]</code></td><td>Prints the config with secrets redacted. Dotted keys work: <code>nocturn config get channels.telegram</code>.</td></tr>
+          <tr><td><code>nocturn config set &lt;key&gt; &lt;value&gt;</code></td><td>Sets one key. Values that parse as JSON are stored typed, so <code>true</code> is a boolean. Channel changes need <code>nocturn gateway restart</code>.</td></tr>
+          <tr><td><code>nocturn dashboard</code></td><td>Prints the private dashboard link with the token, and the SSH tunnel command for servers.</td></tr>
+        </table></div>
+        <h3>Gateway</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>nocturn gateway run</code></td><td>Runs in the foreground. Ctrl+C stops it.</td></tr>
+          <tr><td><code>nocturn gateway start</code></td><td>Starts a detached background process and writes <code>gateway.pid</code>. Logs go to <code>gateway.log</code>.</td></tr>
+          <tr><td><code>nocturn gateway stop</code> / <code>restart</code></td><td>Stops the background process by pid, or stops and starts it.</td></tr>
+          <tr><td><code>nocturn gateway status</code></td><td>Same as <code>nocturn status</code>.</td></tr>
+          <tr><td><code>nocturn gateway logs [--lines N] [-f]</code></td><td>Prints the last 50 lines, or N. <code>-f</code> or <code>--follow</code> keeps printing new lines.</td></tr>
+          <tr><td><code>nocturn gateway install</code> / <code>uninstall</code></td><td>Registers a login task on Windows (<code>schtasks</code>) or a user service on Linux (<code>systemd --user</code>).</td></tr>
+          <tr><td><code>nocturn status</code></td><td>Gateway, model readiness, channel status, session and job counts, pending approvals and pairing requests.</td></tr>
+        </table></div>
+        <h3>Talking to the agent</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>nocturn chat [--session id]</code></td><td>Interactive chat in the terminal. Starts the gateway if needed. <code>/new</code> starts a fresh conversation, <code>/sessions</code> lists them, <code>/status</code> shows status, <code>/exit</code> leaves, Ctrl+C stops a running task. Tool calls are shown as they happen and approvals are asked inline.</td></tr>
+          <tr><td><code>nocturn agent -m "text" [--session id] [--json]</code></td><td>One task, streamed reply, then exit. With <code>--json</code> prints <code>{ sessionId, reply }</code>. Without a terminal, approvals are printed with the id to approve from elsewhere.</td></tr>
+          <tr><td><code>nocturn sessions</code></td><td>Lists conversations with origin, title, and last update.</td></tr>
+          <tr><td><code>nocturn approvals list</code></td><td>Shows tool calls waiting for you.</td></tr>
+          <tr><td><code>nocturn approvals approve &lt;id&gt;</code> / <code>deny &lt;id&gt;</code></td><td>Answers one of them.</td></tr>
+          <tr><td><code>nocturn message send --to &lt;target&gt; -m "text"</code></td><td>Sends a message through a connected channel. Targets look like <code>telegram:123</code>, <code>discord:&lt;channel&gt;</code>, <code>slack:&lt;channel&gt;</code>.</td></tr>
+        </table></div>
+        <h3>Channels and pairing</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>nocturn channels list</code></td><td>Status of each channel and how many senders are allowed.</td></tr>
+          <tr><td><code>nocturn channels add telegram [--token t]</code></td><td>Saves the bot token and turns the channel on. Without the flag it asks, with input hidden.</td></tr>
+          <tr><td><code>nocturn channels add discord [--token t]</code></td><td>Same for a Discord bot token.</td></tr>
+          <tr><td><code>nocturn channels add slack [--bot-token xoxb] [--app-token xapp]</code></td><td>Slack needs both tokens: a bot token and an app-level token with Socket Mode.</td></tr>
+          <tr><td><code>nocturn channels remove &lt;name&gt;</code></td><td>Turns the channel off. The token stays saved.</td></tr>
+          <tr><td><code>nocturn pairing list</code></td><td>Senders waiting to be let in, with their 6-digit codes.</td></tr>
+          <tr><td><code>nocturn pairing approve &lt;code&gt;</code> / <code>deny &lt;code&gt;</code></td><td>Adds the sender to that channel's allow list, or drops the request.</td></tr>
+        </table></div>
+        <h3>Automation and knowledge</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>nocturn cron list</code></td><td>Jobs with schedule, on/off, last run and status.</td></tr>
+          <tr><td><code>nocturn cron add --name n --cron "0 8 * * 1-5" -m "prompt" [--deliver telegram:123]</code></td><td>Adds a job. The cron expression is validated before saving.</td></tr>
+          <tr><td><code>nocturn cron run|enable|disable|rm &lt;id&gt;</code></td><td>Runs one now, toggles it, or deletes it.</td></tr>
+          <tr><td><code>nocturn memory list|add &lt;text&gt;|rm &lt;id&gt;</code></td><td>The facts injected into every system prompt.</td></tr>
+          <tr><td><code>nocturn skills list|rm &lt;name&gt;</code></td><td>Installed skills. Add one by creating a folder, see <a href="#skills-memory-and-schedules">Skills</a>.</td></tr>
+        </table></div>
+        <h3>Mining and website</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Command</th><th>What it does</th></tr>
+          <tr><td><code>nocturn mine [--threads N] [--pool URL]</code></td><td>Mines in this terminal until Ctrl+C. Needs a terminal because a person answers the check.</td></tr>
+          <tr><td><code>nocturn mine balance</code></td><td>Prints your NOCT balance from the pool.</td></tr>
+          <tr><td><code>nocturn pool run [--port 18800] [--host 0.0.0.0] [--file path] [--trust-proxy]</code></td><td>Runs a pool server. Put it behind HTTPS before sharing the address.</td></tr>
+          <tr><td><code>nocturn site build [--out folder]</code></td><td>Exports the landing page with your Trusted by list for a static host.</td></tr>
+          <tr><td><code>nocturn help</code></td><td>The full list, in the terminal.</td></tr>
+        </table></div>
+        <h4>Environment</h4>
+        <p><code>NOCTURN_PORT</code> changes the gateway port (default 18790). <code>NOCTURN_HOME</code> moves the state folder. Both must be set for the CLI and the gateway alike, because the CLI finds the gateway through them.</p>
+      </section>
+
+      <!-- 05 -->
+      <section class="doc" id="chat-channels">
+        <h2>Chat channels</h2>
+        <p>Connect a bot and Nocturn answers from your phone. Each chat becomes its own session, named <code>telegram:&lt;chat&gt;</code>, <code>discord:&lt;channel&gt;</code>, or <code>slack:&lt;channel&gt;</code>, with its own history.</p>
+        <h3>Telegram</h3>
+        <ol>
+          <li>Create a bot with <strong>@BotFather</strong> and copy its token.</li>
+          <li>Run <code>nocturn channels add telegram</code> and paste it.</li>
+          <li>Send your bot any message. It replies with a pairing code.</li>
+          <li>Run <code>nocturn pairing approve &lt;code&gt;</code>. From now on that account can talk to Nocturn.</li>
+        </ol>
+        <p>The adapter long-polls <code>getUpdates</code> and only accepts private chats. Replies are split at 4,000 characters.</p>
+        <h3>Discord</h3>
+        <ol>
+          <li>Create an application in the Discord developer portal, add a bot, and enable the <strong>Message Content</strong> intent.</li>
+          <li>Invite it to your server with permission to read and send messages.</li>
+          <li>Run <code>nocturn channels add discord</code> with the bot token.</li>
+          <li>DM the bot, or mention it in a channel. Approve the pairing code.</li>
+        </ol>
+        <p>The adapter connects to the Discord gateway over WebSocket with the guild messages, direct messages, and message content intents. In servers it only reacts when mentioned. Replies are split at 1,900 characters and never ping anyone.</p>
+        <h3>Slack</h3>
+        <ol>
+          <li>Create a Slack app with <strong>Socket Mode</strong> on. Add the <code>app_mentions:read</code>, <code>chat:write</code>, <code>im:history</code>, and <code>im:read</code> scopes, and subscribe to <code>app_mention</code> and <code>message.im</code> events.</li>
+          <li>Install it to the workspace. Copy the bot token (<code>xoxb-</code>) and an app-level token (<code>xapp-</code>) with <code>connections:write</code>.</li>
+          <li>Run <code>nocturn channels add slack</code> and paste both.</li>
+          <li>DM the app or mention it in a channel. Approve the pairing code.</li>
+        </ol>
+        <h3>Pairing</h3>
+        <p>Unknown senders never reach the agent. The first message from a new sender gets a 6-digit code and a note saying this Nocturn is private. The request shows up in <code>nocturn pairing list</code>, <code>nocturn status</code>, and the dashboard. At most 20 requests wait at once; after that new strangers are ignored until you clear some. Approving writes the sender id to <code>channels.&lt;name&gt;.allow</code> in the config.</p>
+        <h3>Approvals from chat</h3>
+        <p>When a run that started in a chat needs permission, the question is sent to that same chat, with the first 300 characters of the tool input:</p>
+<pre><code>Allow shell?
+{"command":"systemctl restart app"}
+
+Reply /approve or /deny</code></pre>
+        <p>Reply <code>/approve</code> or <code>/deny</code>. If nothing is waiting, the bot says so. The dashboard and <code>nocturn approvals</code> can answer the same question.</p>
+      </section>
+
+      <!-- 06 -->
+      <section class="doc" id="tools-and-permissions">
+        <h2>Tools and permissions</h2>
+        <p>The model gets twelve tools. Each has a policy in <code>config.policies</code>: <span class="pill auto">auto</span> runs without asking, <span class="pill ask">ask</span> waits for your answer, <span class="pill">deny</span> refuses and tells the model the tool is disabled.</p>
+        <div class="table-wrap"><table>
+          <tr><th>Tool</th><th>Default</th><th>What it does</th></tr>
+          <tr><td><code>read_file</code></td><td><span class="pill auto">auto</span></td><td>Reads a UTF-8 file from the workspace. Output is clipped at 50,000 characters.</td></tr>
+          <tr><td><code>list_files</code></td><td><span class="pill auto">auto</span></td><td>Lists a workspace directory. Folders end with <code>/</code>.</td></tr>
+          <tr><td><code>memory_search</code></td><td><span class="pill auto">auto</span></td><td>Keyword search over saved memories. An empty query lists everything.</td></tr>
+          <tr><td><code>memory_save</code></td><td><span class="pill auto">auto</span></td><td>Saves a durable fact about you or your work.</td></tr>
+          <tr><td><code>load_skill</code></td><td><span class="pill auto">auto</span></td><td>Returns the full SKILL.md of an installed skill.</td></tr>
+          <tr><td><code>write_file</code></td><td><span class="pill ask">ask</span></td><td>Creates or overwrites a file in the workspace, creating folders as needed.</td></tr>
+          <tr><td><code>edit_file</code></td><td><span class="pill ask">ask</span></td><td>Replaces one exact occurrence of text. Fails if the text occurs zero or several times.</td></tr>
+          <tr><td><code>shell</code></td><td><span class="pill ask">ask</span></td><td>Runs a command in the workspace: PowerShell on Windows, <code>sh</code> elsewhere. Two-minute timeout.</td></tr>
+          <tr><td><code>web_fetch</code></td><td><span class="pill ask">ask</span></td><td>Fetches a public http(s) URL and returns its text, with HTML tags stripped. Follows up to 5 redirects, 30-second timeout.</td></tr>
+          <tr><td><code>browser</code></td><td><span class="pill ask">ask</span></td><td>Drives a headless Chrome or Edge: <code>navigate</code>, <code>text</code>, <code>click</code>, <code>type</code> by CSS selector, and <code>screenshot</code> into the workspace.</td></tr>
+          <tr><td><code>schedule_task</code></td><td><span class="pill ask">ask</span></td><td>Creates a cron job.</td></tr>
+          <tr><td><code>send_message</code></td><td><span class="pill ask">ask</span></td><td>Sends text through a connected channel.</td></tr>
+        </table></div>
+        <p>Change a policy with <code>nocturn config set policies.shell auto</code>, or in the dashboard. Valid values are <code>auto</code>, <code>ask</code>, and <code>deny</code>.</p>
+        <h3>The approval flow</h3>
+        <ol class="flow">
+          <li><div><b>Validation first</b><span>Tool inputs stream in eagerly and are not validated by the API, so Nocturn checks required fields, types, and enums itself before anything runs. A bad input is reported to the model without running.</span></div></li>
+          <li><div><b>Then the policy</b><span>An <code>ask</code> tool emits an <code>approval</code> event with the tool name and full input. The run pauses.</span></div></li>
+          <li><div><b>You answer anywhere</b><span>Terminal prompt, <code>nocturn approvals approve &lt;id&gt;</code>, the dashboard, or <code>/approve</code> in the chat. A denied or expired request (10 minutes) tells the model the owner did not approve, and the model is instructed not to work around it.</span></div></li>
+        </ol>
+        <h3>Safety model</h3>
+        <ul>
+          <li>The gateway listens on <code>127.0.0.1</code> only, requires the bearer token for every API call, and rejects requests whose <code>Host</code> or <code>Origin</code> is not local. That blocks DNS rebinding and cross-site requests.</li>
+          <li>File tools resolve symlinks and refuse any path that leaves <code>~/.nocturn/workspace</code>.</li>
+          <li>Web and browser tools resolve the hostname first and refuse private, loopback, link-local, and multicast addresses, including IPv4-mapped IPv6. The agent cannot reach your gateway, your LAN, or cloud metadata endpoints.</li>
+          <li>The system prompt tells the model that web pages, files, tool output, and relayed chat messages are data, not instructions from you.</li>
+          <li>Secrets are never returned by the API. The config endpoint redacts them, and a blank value in an update keeps the stored secret.</li>
+        </ul>
+        <div class="note bad"><i>!</i><p>The <strong>shell tool is not sandboxed</strong>. An approved command runs with your user's full permissions, in the workspace folder but able to reach anything your user can. Read each command before allowing it, and do not set <code>shell</code> to <code>auto</code> on a machine with data you care about.</p></div>
+      </section>
+
+      <!-- 07 -->
+      <section class="doc" id="skills-memory-and-schedules">
+        <h2>Skills, memory, and schedules</h2>
+        <h3>Skills</h3>
+        <p>A skill is a folder in <code>~/.nocturn/workspace/skills/</code> with a <code>SKILL.md</code> inside. The name must be lowercase letters, digits, and dashes. Its description is listed in every system prompt; the body is loaded only when the model calls <code>load_skill</code>, so you can keep long instructions without paying for them on every turn.</p>
+<pre><code>---
+name: weekly-update
+description: How to write the Monday update for the team
+---
+
+Read notes/week.md, group the items by project, and write
+briefs/update.md with three sections: shipped, in progress, blocked.
+Keep each line under 15 words.</code></pre>
+        <p>Create skills by hand, with <code>POST /api/skills</code>, or in the dashboard. Remove one with <code>nocturn skills rm weekly-update</code>.</p>
+        <h3>Memory</h3>
+        <p>Memories are short facts, one per entry, stored in <code>memory.json</code> and injected into every system prompt under “Saved memories”. The model can save them with <code>memory_save</code> and search them with <code>memory_search</code>; you can manage them with <code>nocturn memory</code>.</p>
+<pre><code><span class="p">$</span> nocturn memory add "I prefer short answers"
+<span class="p">$</span> nocturn memory list
+<span class="p">$</span> nocturn memory rm &lt;id&gt;</code></pre>
+        <h3>Cron jobs</h3>
+        <p>A job runs a prompt on a 5-field cron schedule, <strong>in the server's local time</strong>. Each run is its own session named <code>cron:&lt;job id&gt;</code>, so a job keeps its history across runs. If the job has a <code>deliver</code> target, the reply is sent there.</p>
+<pre><code><span class="p">$</span> nocturn cron add --name brief --cron "0 8 * * 1-5" -m "plan my day" --deliver telegram:42</code></pre>
+        <div class="table-wrap"><table>
+          <tr><th>Field</th><th>Range</th><th>Examples</th></tr>
+          <tr><td>minute</td><td>0 to 59</td><td><code>0</code>, <code>*/15</code>, <code>0,30</code></td></tr>
+          <tr><td>hour</td><td>0 to 23</td><td><code>8</code>, <code>9-17</code>, <code>*/2</code></td></tr>
+          <tr><td>day of month</td><td>1 to 31</td><td><code>*</code>, <code>1</code>, <code>1-7</code></td></tr>
+          <tr><td>month</td><td>1 to 12</td><td><code>*</code>, <code>6-8</code></td></tr>
+          <tr><td>weekday</td><td>0 (Sunday) to 6</td><td><code>1-5</code>, <code>0,6</code></td></tr>
+        </table></div>
+        <p>Lists, ranges, and steps are supported; names like <code>MON</code> are not. The scheduler checks once a minute and only fires enabled jobs. <code>nocturn cron run &lt;id&gt;</code> fires one immediately, which is the easiest way to test a prompt.</p>
+      </section>
+
+      <!-- 08 -->
+      <section class="doc" id="http-api">
+        <h2>HTTP API</h2>
+        <p>The CLI and the dashboard use this API, and so can your own scripts. Base URL <code>http://127.0.0.1:18790/api</code>. Every call needs <code>Authorization: Bearer &lt;token&gt;</code> with the token from <code>~/.nocturn/token</code>. Bodies and responses are JSON. Bodies are limited to 1 MB.</p>
+<pre><code><span class="p">$</span> TOKEN=$(cat ~/.nocturn/token)
+<span class="p">$</span> curl -s http://127.0.0.1:18790/api/state -H "Authorization: Bearer $TOKEN"</code></pre>
+        <div class="note warn"><i>!</i><p>Requests are refused with 403 unless the <code>Host</code> header is <code>127.0.0.1</code>, <code>localhost</code>, or <code>[::1]</code>, and the <code>Origin</code> header is either absent or matches. A wrong token gets 401. Errors come back as <code>{ "error": "message" }</code>.</p></div>
+        <h3>State and events</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Route</th><th>Body</th><th>Returns</th></tr>
+          <tr><td><span class="pill get">GET</span> <code>/api/state</code></td><td>—</td><td>Redacted config, tool names, sessions, pending approvals, running sessions, channel status, pairing requests, jobs, skills, memory, and which credentials are present.</td></tr>
+          <tr><td><span class="pill get">GET</span> <code>/api/events</code></td><td>—</td><td>A Server-Sent Events stream. Every event is a JSON object with a <code>type</code>. A comment ping is sent every 25 seconds.</td></tr>
+          <tr><td><span class="pill put">PUT</span> <code>/api/config</code></td><td>Any subset of the config</td><td>New state. Unknown keys are ignored, types must match, blank secrets keep the old value. Changing <code>channels</code> restarts the adapters.</td></tr>
+        </table></div>
+        <h3>Sessions and approvals</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Route</th><th>Body</th><th>Returns</th></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/sessions</code></td><td>—</td><td>201 with the new session <code>{ id, origin, title, messages, updated }</code>.</td></tr>
+          <tr><td><span class="pill get">GET</span> <code>/api/sessions/:id</code></td><td>—</td><td>The full session including message history, or 404.</td></tr>
+          <tr><td><span class="pill delete">DELETE</span> <code>/api/sessions/:id</code></td><td>—</td><td>Stops a running turn and deletes the file.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/sessions/:id/messages</code></td><td><code>{ "text": "..." }</code></td><td>202 at once. The run happens in the background; watch <code>/api/events</code>. A session that does not exist yet is created with this id, which is how chat sessions start.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/sessions/:id/stop</code></td><td>—</td><td>Aborts the running turn.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/approvals/:id</code></td><td><code>{ "approved": true }</code></td><td>Resolves a pending approval, or 404.</td></tr>
+        </table></div>
+        <h3>Channels, jobs, skills, memory</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Route</th><th>Body</th><th>Returns</th></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/pairing/:code</code></td><td><code>{ "approve": true }</code></td><td>Allows or drops the sender. New state.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/allow</code></td><td><code>{ "channel", "sender" }</code></td><td>Removes a sender from the allow list. New state.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/message</code></td><td><code>{ "target", "text" }</code></td><td>Sends through a connected channel. 400 if the channel is not connected.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/jobs</code></td><td><code>{ "name", "cron", "prompt", "deliver" }</code></td><td>201 with the new state. 400 on a bad cron.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/jobs/:id/run</code></td><td>—</td><td>202. Fires the job now.</td></tr>
+          <tr><td><span class="pill patch">PATCH</span> <code>/api/jobs/:id</code></td><td><code>{ "enabled": false }</code></td><td>Toggles the job.</td></tr>
+          <tr><td><span class="pill delete">DELETE</span> <code>/api/jobs/:id</code></td><td>—</td><td>Removes it.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/skills</code></td><td><code>{ "name", "description", "instructions" }</code></td><td>Writes <code>skills/&lt;name&gt;/SKILL.md</code>. 201 with the new state.</td></tr>
+          <tr><td><span class="pill delete">DELETE</span> <code>/api/skills/:name</code></td><td>—</td><td>Deletes the folder.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/memory</code></td><td><code>{ "text" }</code></td><td>201 with the new state. Up to 5,000 characters.</td></tr>
+          <tr><td><span class="pill delete">DELETE</span> <code>/api/memory/:id</code></td><td>—</td><td>Forgets it.</td></tr>
+        </table></div>
+        <h3>Wallet and partners</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Route</th><th>Body</th><th>Returns</th></tr>
+          <tr><td><span class="pill get">GET</span> <code>/api/wallet</code></td><td>—</td><td><code>{ address }</code> if a wallet is linked, else <code>{}</code>.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/wallet</code></td><td><code>{ "address", "message", "signature" }</code></td><td>Verifies the <code>personal_sign</code> proof and stores it. 400 if the signature does not match.</td></tr>
+          <tr><td><span class="pill delete">DELETE</span> <code>/api/wallet</code></td><td>—</td><td>Unlinks.</td></tr>
+          <tr><td><span class="pill get">GET</span> <code>/api/partners</code></td><td>—</td><td>The Trusted by list.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/api/partners</code></td><td><code>{ "name", "logo" }</code></td><td>Logo is a data URL: PNG, JPEG, or WebP, under 256 KB, checked by signature. Up to 40 entries.</td></tr>
+          <tr><td><span class="pill delete">DELETE</span> <code>/api/partners/:id</code></td><td>—</td><td>Removes one.</td></tr>
+        </table></div>
+        <h3>Event types</h3>
+        <p>Everything on <code>/api/events</code> carries a <code>sessionId</code> where it applies.</p>
+        <div class="table-wrap"><table>
+          <tr><th>Type</th><th>Fields</th><th>Meaning</th></tr>
+          <tr><td><code>turn_start</code> / <code>step_start</code></td><td>—</td><td>A turn began; each model call within it began.</td></tr>
+          <tr><td><code>text</code></td><td><code>text</code></td><td>A streamed piece of the reply.</td></tr>
+          <tr><td><code>thinking</code></td><td><code>text</code></td><td>A streamed piece of the model's summarized thinking (Anthropic only).</td></tr>
+          <tr><td><code>tool_start</code></td><td><code>id, name, input</code></td><td>The model asked for a tool.</td></tr>
+          <tr><td><code>approval</code></td><td><code>id, tool, input</code></td><td>Waiting for you. Answer with <code>POST /api/approvals/:id</code>.</td></tr>
+          <tr><td><code>approval_resolved</code></td><td><code>id, approved</code></td><td>Someone answered, or it timed out.</td></tr>
+          <tr><td><code>tool_result</code></td><td><code>id, name, content, isError</code></td><td>What the tool returned.</td></tr>
+          <tr><td><code>turn_end</code></td><td>—</td><td>The reply is complete.</td></tr>
+          <tr><td><code>turn_error</code></td><td><code>message</code></td><td>The turn failed or was stopped.</td></tr>
+          <tr><td><code>sessions_changed</code>, <code>channels_changed</code>, <code>jobs_changed</code></td><td>—</td><td>Refresh the matching part of <code>/api/state</code>.</td></tr>
+        </table></div>
+      </section>
+
+      <!-- 09 -->
+      <section class="doc" id="mining">
+        <h2>Mining</h2>
+        <p><code>nocturn mine</code> hashes SHA-256 on your CPU and reports shares to a pool. Balances are in <strong>NOCT</strong>, a number kept by the pool server. NOCT is not a coin on a blockchain, cannot be withdrawn, and has no guaranteed value. Only mine on a machine you own or have permission to use.</p>
+        <h3>Start mining</h3>
+<pre><code><span class="p">$</span> nocturn mine
+<span class="p">$</span> nocturn mine --threads 4
+<span class="p">$</span> nocturn mine balance</code></pre>
+        <ol class="flow">
+          <li><div><b>Pick a name</b><span>3 to 20 characters: letters, digits, dash, underscore. The pool returns a token that is saved in <code>miner.json</code>. The default pool comes from the package, or pass <code>--pool https://...</code>, or set <code>NOCTURN_POOL</code>.</span></div></li>
+          <li><div><b>Answer the check</b><span>A small addition, asked once when mining starts. Three wrong answers end the session.</span></div></li>
+          <li><div><b>Hash</b><span>By default all cores but one. The screen shows hashrate, job and round progress, estimated share of the round reward, last payout, balance, hardware, temperature, and what auto-tune is doing.</span></div></li>
+        </ol>
+        <p>Press Ctrl+C to stop. Mining only runs while that terminal is open; on a server use <code>tmux</code> so it survives disconnects. The check lasts as long as the miner keeps talking to the pool. If contact is lost for over 30 minutes, mining pauses and the check is asked again.</p>
+        <h3>Auto-tune</h3>
+        <p>Every 15 seconds the miner reads CPU temperature (Linux hwmon, or Windows ACPI thermal zones), GPU temperature through <code>nvidia-smi</code> when available, and free memory. At 85°C or above it idles one thread. Under 8% free memory it idles one thread. Once it is 75°C or cooler for a minute, it brings one back, up to the number you asked for. Virtual servers often expose no sensors, and then it simply keeps your thread count.</p>
+        <h3>Hosting a pool</h3>
+<pre><code><span class="p">$</span> nocturn pool run --host 0.0.0.0 --port 18800 --trust-proxy</code></pre>
+        <p>Put it behind an HTTPS reverse proxy, then set <code>nocturn.pool</code> in <code>package.json</code> to its address. <code>--trust-proxy</code> reads <code>X-Forwarded-For</code> so the limit of 5 sign-ups per address per hour works behind the proxy. The pool keeps accounts in <code>pool.json</code>, or the file you pass with <code>--file</code>.</p>
+        <p>Each round lasts 60 seconds and pays 100.00 NOCT, split by work: a share at difficulty <em>d</em> counts as 2<sup><em>d</em></sup>. Difficulty is per miner, starting at 20 bits, raised by one when shares arrive faster than every 2.5 seconds, lowered by one after 20 seconds without a share, between 8 and 44. Duplicate and stale shares are rejected, and a miner is limited to 20 shares per second.</p>
+        <div class="table-wrap"><table>
+          <tr><th>Pool route</th><th>Purpose</th></tr>
+          <tr><td><span class="pill post">POST</span> <code>/register</code></td><td><code>{ name }</code> → <code>{ name, token }</code>. The only route without a token.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/check</code>, <code>/check/answer</code></td><td>Gets a question, answers it. Errors: <code>wrong_answer</code>.</td></tr>
+          <tr><td><span class="pill get">GET</span> <code>/job</code></td><td>Seed, difficulty, round timing, your work, balance, wallet. Error <code>check_required</code> until the check is passed.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/share</code></td><td><code>{ seed, nonce }</code> → <code>{ accepted, reason }</code> plus a fresh job. Error <code>slow_down</code> over the rate limit.</td></tr>
+          <tr><td><span class="pill get">GET</span> <code>/balance</code></td><td><code>{ cents, wallet }</code>.</td></tr>
+          <tr><td><span class="pill post">POST</span> <code>/wallet</code></td><td>Stores a verified wallet proof on the account.</td></tr>
+        </table></div>
+        <h3>Linking a wallet</h3>
+        <p>On your own dashboard, Connect wallet asks MetaMask (or any wallet that injects <code>window.ethereum</code>) to switch to Robinhood Chain (chain id 4663), then to sign this message with <code>personal_sign</code>:</p>
+<pre><code>Nocturn wallet link
+Wallet: 0xYourAddress
+Issued: 2026-11-03T12:00:00.000Z</code></pre>
+        <p>The gateway recovers the signer from the signature and refuses anything that does not match the address. No private key is ever sent. The proof is stored in <code>wallet.json</code> and sent to the pool the next time you run <code>nocturn mine</code>, so the pool can show the wallet on your account. On the public site the button only switches networks and signs nothing.</p>
+      </section>
+
+      <!-- 10 -->
+      <section class="doc" id="configuration">
+        <h2>Configuration and servers</h2>
+        <h3>config.json</h3>
+        <p>Read with <code>nocturn config get</code>, change with <code>nocturn config set</code>, the dashboard, or <code>PUT /api/config</code>. Unknown keys are dropped and types must match the defaults.</p>
+        <div class="table-wrap"><table>
+          <tr><th>Key</th><th>Default</th><th>Meaning</th></tr>
+          <tr><td><code>provider</code></td><td><code>anthropic</code></td><td><code>anthropic</code> or <code>openai</code> (any OpenAI-compatible endpoint).</td></tr>
+          <tr><td><code>model</code></td><td><code>claude-opus-5-5</code></td><td>Anthropic model id. Nocturn enables server-side fallback for the Claude 5 family.</td></tr>
+          <tr><td><code>effort</code></td><td><code>high</code></td><td>Anthropic effort level.</td></tr>
+          <tr><td><code>anthropicKey</code></td><td>empty</td><td>API key. <code>ANTHROPIC_API_KEY</code> in the environment also works.</td></tr>
+          <tr><td><code>openaiBaseUrl</code></td><td><code>http://localhost:11434/v1</code></td><td>Ollama by default. Any <code>/chat/completions</code> endpoint with streaming and tools.</td></tr>
+          <tr><td><code>openaiModel</code>, <code>openaiKey</code></td><td>empty</td><td>Model name and optional key for that endpoint.</td></tr>
+          <tr><td><code>persona</code></td><td>“You are Nocturn, …”</td><td>The first paragraph of the system prompt.</td></tr>
+          <tr><td><code>policies.&lt;tool&gt;</code></td><td>see Tools</td><td><code>auto</code>, <code>ask</code>, or <code>deny</code> per tool.</td></tr>
+          <tr><td><code>channels.&lt;name&gt;</code></td><td>off</td><td><code>enabled</code>, tokens, and the <code>allow</code> list of sender ids.</td></tr>
+        </table></div>
+        <h3>Environment variables</h3>
+        <div class="table-wrap"><table>
+          <tr><th>Variable</th><th>Effect</th></tr>
+          <tr><td><code>NOCTURN_PORT</code></td><td>Gateway port, default 18790. The CLI reads it too.</td></tr>
+          <tr><td><code>NOCTURN_HOME</code></td><td>State folder, default <code>~/.nocturn</code>.</td></tr>
+          <tr><td><code>NOCTURN_BROWSER</code></td><td>Path to a Chrome or Edge executable for the browser tool, if it is not in a standard location.</td></tr>
+          <tr><td><code>NOCTURN_POOL</code></td><td>Pool address for <code>nocturn mine</code>, overridden by <code>--pool</code>.</td></tr>
+          <tr><td><code>NOCTURN_TELEGRAM_API</code></td><td>Alternate Telegram API base, for a local Bot API server.</td></tr>
+          <tr><td><code>ANTHROPIC_API_KEY</code>, <code>ANTHROPIC_BASE_URL</code></td><td>Picked up by the Anthropic SDK when the config has no key.</td></tr>
+          <tr><td><code>NO_COLOR</code></td><td>Turns off terminal colors.</td></tr>
+        </table></div>
+        <h3>On a server</h3>
+<pre><code><span class="p">$</span> nocturn onboard
+<span class="p">$</span> nocturn gateway install
+<span class="p">$</span> loginctl enable-linger $USER</code></pre>
+        <p>On Linux this writes a <code>systemd --user</code> unit named <code>nocturn-gateway</code> with <code>Restart=on-failure</code>, and <code>enable-linger</code> keeps user services running after you log out. On Windows it creates a scheduled task that starts at login.</p>
+        <p>The gateway still listens on <code>127.0.0.1</code> only. To open the dashboard from your own computer, tunnel to it, then open the link from <code>nocturn dashboard</code>:</p>
+<pre><code><span class="p">$</span> ssh -L 18790:127.0.0.1:18790 user@your-server</code></pre>
+        <p>The same tunnel is what the mobile apps and the installable web app use: they talk to <code>127.0.0.1:18790</code> on the phone, which the tunnel forwards to the server.</p>
+      </section>
+
+      <!-- 11 -->
+      <section class="doc" id="website-deployment">
+        <h2>Website deployment</h2>
+        <p>The landing page in <code>public/</code> is both the dashboard your gateway serves and the public site. <code>nocturn site build</code> copies it into a folder a static host can serve, writes <code>partners.json</code> with your Trusted by list, and adds a <code>_headers</code> file with the same Content-Security-Policy the gateway sends.</p>
+<pre><code><span class="p">$</span> nocturn site build --out site
+<span class="p">$</span> npx wrangler deploy</code></pre>
+        <p>On Windows PowerShell use <code>npx.cmd wrangler deploy</code>, since PowerShell blocks <code>npx.ps1</code> by default. <code>wrangler.jsonc</code> serves <code>site/</code> as a Cloudflare Worker with static assets on <code>nocturnh.com</code> and <code>www.nocturnh.com</code>. Any other static host works: upload the folder and keep the headers.</p>
+        <p>The public site has no gateway, so the Connect wallet button only connects, the Trusted by section comes from the file written at build time, and the numbers in the “Remembers how you like things” tile stay at zero. Set the token contract in <code>TOKEN.contract</code> in <code>public/demo.js</code> once it is deployed.</p>
+      </section>
+
+      <!-- 12 -->
+      <section class="doc" id="faq-and-troubleshooting">
+        <h2>FAQ and troubleshooting</h2>
+        <p>Start with <code>nocturn doctor</code>. It checks Node, dependencies, the state folder, the gateway, the model key, and each enabled channel, and prints the fix for anything that fails.</p>
+        <div class="faq">
+          <details><summary>“The gateway is not running.”</summary><div><p>Run <code>nocturn gateway start</code>. If that fails, read <code>nocturn gateway logs</code>. A common cause is a missing model key: run <code>nocturn onboard</code>.</p></div></details>
+          <details><summary>“Port 18790 is already in use.”</summary><div><p>Another gateway, or another program, is on that port. Check with <code>nocturn gateway status</code>. To run on a different port, set <code>NOCTURN_PORT</code> for both the gateway and the CLI.</p></div></details>
+          <details><summary>“npx : File npx.ps1 cannot be loaded because running scripts is disabled.”</summary><div><p>That is the PowerShell execution policy, not Nocturn. Use <code>npx.cmd</code>, <code>npm.cmd</code>, and <code>nocturn.cmd</code>, or run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> once.</p></div></details>
+          <details><summary>“No model is set up yet.”</summary><div><p>Run <code>nocturn onboard</code>, or set <code>ANTHROPIC_API_KEY</code> in the environment of the gateway process. For the OpenAI-compatible provider, <code>openaiModel</code> must be set.</p></div></details>
+          <details><summary>“No Chrome or Edge found.”</summary><div><p>The browser tool looks in the usual install locations. Point <code>NOCTURN_BROWSER</code> at the executable, or install Chrome. The profile is kept in <code>~/.nocturn/browser</code>.</p></div></details>
+          <details><summary>My bot does not answer on Telegram.</summary><div><p>Check <code>nocturn channels list</code>: the status should be <code>connected</code>. Then check <code>nocturn pairing list</code>, because new senders are blocked until you approve their code. Only private chats are accepted on Telegram.</p></div></details>
+          <details><summary>A tool was denied and the model gave up.</summary><div><p>That is by design. The approval question waits 10 minutes; if nobody answers, it counts as denied and the model is told. Answer faster, or set that tool to <code>auto</code> if you trust it.</p></div></details>
+          <details><summary>“Stopped after 40 steps without finishing.”</summary><div><p>One turn may make at most 40 model calls. Break the task into smaller prompts, or add a skill with clearer instructions.</p></div></details>
+          <details><summary>“The pool does not know this account.”</summary><div><p>The pool was reset or you point at a different pool than the one that issued the token. Delete <code>~/.nocturn/miner.json</code> and run <code>nocturn mine</code> to sign up again.</p></div></details>
+          <details><summary>“nocturn mine needs a terminal.”</summary><div><p>A person has to answer the check, so the miner refuses to run without an interactive terminal. On a server, run it inside <code>tmux</code> and detach.</p></div></details>
+          <details><summary>Can I use a local model?</summary><div><p>Yes. Pick the OpenAI-compatible provider in <code>nocturn onboard</code>, keep the Ollama base URL, and enter the model name. Prompts never leave the machine. The model needs tool-calling support to use tools.</p></div></details>
+          <details><summary>Where are my keys?</summary><div><p>In <code>~/.nocturn/config.json</code>, in plain text, with file mode 600 where the OS supports it. The API never returns them.</p></div></details>
+          <details><summary>How do I run the tests?</summary><div><p><code>npm test</code> in the repository. The tests use a fake model server, so they need no key and spend nothing.</p></div></details>
+        </div>
+      </section>
+
+      <p class="foot">© Nocturn · <a href="/">nocturnh.com</a> · Needs Node 22 or newer · Your data stays in ~/.nocturn</p>
+    </main>
+
+    <aside id="onpage" class="onpage" aria-label="On this page">
+      <b>On this page</b>
+      <ol></ol>
+      <div class="progress"><i></i></div>
+    </aside>
+  </div>
+
+  <script type="module" src="/docs.js"></script>
+</body>
+</html>
