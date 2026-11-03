@@ -4,7 +4,8 @@ import { createServer } from 'node:http';
 import { extname, join, resolve, sep } from 'node:path';
 import { AUTH_TOKEN, DATA_DIR, PUBLIC_DIR, SKILLS_DIR, config, redactedConfig, updateConfig } from './config.mjs';
 import { sessions, validSessionId } from './agent.mjs';
-import { memory, skills, toolNames } from './tools.mjs';
+import { memory, searchIndex, skills, toolNames } from './tools.mjs';
+import { embedder, snippet } from './embeddings.mjs';
 import { partners } from './partners.mjs';
 import { checkWalletProof } from './wallet-proof.mjs';
 
@@ -95,6 +96,7 @@ export function startServer({ agent, channels, scheduler, port, host = '127.0.0.
     jobs: scheduler.jobs,
     skills: skills.list(),
     memory: memory.list(),
+    search: { ...embedder.status, entries: searchIndex.size, updated: searchIndex.index.updated ?? null },
     credentials: {
       anthropic: Boolean(config.anthropicKey || process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN),
       openai: Boolean(config.openaiModel),
@@ -120,7 +122,19 @@ export function startServer({ agent, channels, scheduler, port, host = '127.0.0.
       const body = await readBody(req);
       updateConfig(body);
       if (body.channels) channels.restart();
+      if (body.embeddings) { embedder.reset(); searchIndex.schedule(200); }
       return send(res, 200, state());
+    }
+
+    if (resource === 'search' && method === 'POST') {
+      const { query, kinds } = await readBody(req);
+      if (searchIndex.size === 0) await searchIndex.refresh();
+      const hits = await searchIndex.search(str(query, 'query', 2000), { kinds: Array.isArray(kinds) ? kinds : ['memory', 'file'], limit: 10 });
+      return send(res, 200, hits.map((h) => ({ kind: h.kind, path: h.path, pos: h.pos, score: h.score, similarity: h.similarity, snippet: snippet(h.text, query) })));
+    }
+    if (resource === 'index' && method === 'POST') {
+      if (id === 'rebuild') embedder.reset();
+      try { return send(res, 200, { ...(await searchIndex.refresh()), status: embedder.status }); } catch (err) { throw new HttpError(502, err.message); }
     }
 
     if (resource === 'sessions') {

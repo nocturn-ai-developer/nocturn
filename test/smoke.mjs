@@ -171,6 +171,54 @@ await check('unknown chat senders get a pairing code and never reach the agent',
   updateConfig({ channels: { telegram: { allow: [] } } });
 });
 
+await check('search index ranks the right file and memory first, by meaning and by exact words', async () => {
+  const { searchIndex } = await import('../src/tools.mjs');
+  const { chunk, tokens } = await import('../src/embeddings.mjs');
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  mkdirSync(join(WORKSPACE, 'notes'), { recursive: true });
+  mkdirSync(join(WORKSPACE, 'config'), { recursive: true });
+  writeFileSync(join(WORKSPACE, 'config', 'database.yml'), 'production:\n  adapter: postgresql\n  pool: 5\n  timeout: 5000\n');
+  writeFileSync(join(WORKSPACE, 'notes', 'clients.md'), '# Clients\n\nNorthwind Studio prefers short emails and pays late.\nBluepeak Labs wants a weekly call on Mondays.\n');
+  writeFileSync(join(WORKSPACE, 'notes', 'gym.md'), 'Gym schedule: Monday, Wednesday and Friday at 6:00 PM. Leg day on Friday.\n');
+  writeFileSync(join(WORKSPACE, 'notes', 'long.md'), Array.from({ length: 40 }, (_, i) => `Paragraph ${i} about project planning, roadmaps and quarterly goals.`).join('\n\n'));
+  writeFileSync(join(WORKSPACE, 'photo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]));
+  const r1 = await call('memory', 'POST', { text: 'The owner likes answers under three sentences.' });
+  assert.equal(r1.status, 201);
+  await call('memory', 'POST', { text: 'Invoices go out on the first business day of the month.' });
+  const built = await (await call('index', 'POST', {})).json();
+  assert.equal(built.provider, 'local');
+  assert.ok(built.entries >= 6, 'memories and files are indexed');
+  assert.ok(chunk('x'.repeat(2000)).length >= 3, 'long text is split into overlapping chunks');
+  assert.deepEqual(tokens('Invoices go out'), ['invoice', 'go', 'out']);
+
+  const files = await (await call('search', 'POST', { query: 'how big is the database connection pool', kinds: ['file'] })).json();
+  assert.equal(files[0].path, 'config/database.yml', 'exact words win through BM25 even with the built-in vectors');
+  const gym = await (await call('search', 'POST', { query: 'when do I work out', kinds: ['file'] })).json();
+  assert.ok(gym.length, 'a paraphrase still returns results');
+  const client = await (await call('search', 'POST', { query: 'Northwind payment habits', kinds: ['file'] })).json();
+  assert.equal(client[0].path, 'notes/clients.md');
+  assert.ok(!files.some((h) => h.path === 'photo.png'), 'binary files are skipped');
+
+  const memories = await (await call('search', 'POST', { query: 'invoice timing', kinds: ['memory'] })).json();
+  assert.equal(memories[0].kind, 'memory');
+  assert.ok(memories[0].snippet.includes('first business day'));
+
+  // The agent's own tool goes through the same index.
+  const { runTool } = await import('../src/tools.mjs');
+  const text = await runTool('search_workspace', { query: 'postgres pool timeout' }, {});
+  assert.ok(text.startsWith('config/database.yml'), text);
+  const remembered = await runTool('memory_search', { query: 'short answers' }, {});
+  assert.ok(remembered.includes('three sentences'), remembered);
+
+  // Incremental: a second refresh embeds nothing new; a change embeds only that file's chunks.
+  const again = await (await call('index', 'POST', {})).json();
+  assert.equal(again.embedded, 0);
+  writeFileSync(join(WORKSPACE, 'config', 'database.yml'), 'production:\n  adapter: postgresql\n  pool: 20\n  timeout: 5000\n');
+  const changed = await (await call('index', 'POST', {})).json();
+  assert.equal(changed.embedded, 1);
+  assert.equal(searchIndex.size, changed.entries);
+});
+
 await check('cron expressions match correctly', async () => {
   const mondayEight = new Date(2026, 10, 2, 8, 0);
   assert.ok(cronMatches('0 8 * * 1-5', mondayEight));

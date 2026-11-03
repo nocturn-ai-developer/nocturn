@@ -6,6 +6,7 @@ import { isIP } from 'node:net';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { DATA_DIR, SKILLS_DIR, WORKSPACE, readJson, writeJson } from './config.mjs';
 import { browserAction } from './browser.mjs';
+import { SearchIndex, snippet } from './embeddings.mjs';
 
 const MAX_OUTPUT = 50000;
 const MEMORY_FILE = join(DATA_DIR, 'memory.json');
@@ -16,10 +17,14 @@ export const memory = {
   add(text) {
     const entry = { id: randomUUID(), text, at: new Date().toISOString() };
     writeJson(MEMORY_FILE, [...this.list(), entry]);
+    searchIndex.schedule();
     return entry;
   },
-  remove(id) { writeJson(MEMORY_FILE, this.list().filter((m) => m.id !== id)); },
+  remove(id) { writeJson(MEMORY_FILE, this.list().filter((m) => m.id !== id)); searchIndex.schedule(); },
 };
+
+// One index over memories and the workspace, refreshed after every write.
+export const searchIndex = new SearchIndex({ memories: () => memory.list() });
 
 export const skills = {
   list() {
@@ -141,6 +146,7 @@ const TOOLS = [
       const file = safePath(path);
       mkdirSync(dirname(file), { recursive: true });
       writeFileSync(file, content);
+      searchIndex.schedule();
       return `Wrote ${statSync(file).size} bytes to ${path}`;
     },
   },
@@ -154,6 +160,7 @@ const TOOLS = [
       const count = body.split(old_text).length - 1;
       if (count !== 1) throw new Error(`old_text occurs ${count} times, expected exactly 1`);
       writeFileSync(file, body.replace(old_text, () => new_text));
+      searchIndex.schedule();
       return `Edited ${path}`;
     },
   },
@@ -188,12 +195,23 @@ const TOOLS = [
   },
   {
     name: 'memory_search',
-    description: 'Search saved memories by keyword. An empty query lists everything.',
-    input_schema: schema({ query: str('Keywords') }),
-    run: ({ query }) => {
-      const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-      const hits = memory.list().filter((m) => !words.length || words.some((w) => m.text.toLowerCase().includes(w)));
-      return hits.map((m) => `- ${m.text}`).join('\n') || 'No matching memories.';
+    description: 'Search saved memories by meaning and keywords. An empty query lists everything.',
+    input_schema: schema({ query: str('What you are looking for, in plain words') }),
+    run: async ({ query }) => {
+      if (!query.trim()) return memory.list().map((m) => `- ${m.text}`).join('\n') || 'No memories yet.';
+      if (searchIndex.size === 0) await searchIndex.refresh();
+      const hits = await searchIndex.search(query, { kinds: ['memory'], limit: 8 });
+      return hits.map((h) => `- ${h.text}`).join('\n') || 'No matching memories.';
+    },
+  },
+  {
+    name: 'search_workspace',
+    description: 'Find the workspace files and passages most relevant to a question, by meaning and keywords. Returns paths with snippets; read the file for the full text.',
+    input_schema: schema({ query: str('What you are looking for, in plain words') }),
+    run: async ({ query }) => {
+      if (searchIndex.size === 0) await searchIndex.refresh();
+      const hits = await searchIndex.search(query, { kinds: ['file'], limit: 6 });
+      return hits.map((h) => `${h.path} (offset ${h.pos}, score ${h.score})\n  ${snippet(h.text, query)}`).join('\n\n') || 'Nothing in the workspace matches.';
     },
   },
   {

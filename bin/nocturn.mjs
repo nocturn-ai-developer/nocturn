@@ -270,6 +270,7 @@ async function cmdStatus(_, flags) {
     channels: s.channelStatus, sessions: s.sessions.length, running: s.running.length,
     jobs: s.jobs.length, memories: s.memory.length, skills: s.skills.length,
     pendingApprovals: s.approvals.length, pendingPairing: s.pairing.length,
+    search: s.search ?? null,
   };
   out(flags, report, (r) => {
     const row = (label, value) => console.log(`  ${dim(label.padEnd(10))} ${value}`);
@@ -280,6 +281,7 @@ async function cmdStatus(_, flags) {
     row('Sessions', `${r.sessions}  ${dim(`${r.running} running`)}`);
     row('Cron jobs', String(r.jobs));
     row('Memory', `${r.memories}  ${dim('Skills')} ${r.skills}`);
+    if (r.search) row('Search', `${r.search.provider} ${dim(r.search.model)}  ${r.search.ready ? good(`✓ ${r.search.entries} chunks`) : bad('✗ not ready')}${r.search.note ? `  ${dim(clean(r.search.note))}` : ''}`);
     if (r.pendingApprovals) row('Waiting', pink(`${r.pendingApprovals} approval(s): nocturn approvals list`));
     if (r.pendingPairing) row('Waiting', pink(`${r.pendingPairing} pairing request(s): nocturn pairing list`));
   });
@@ -536,6 +538,26 @@ async function cmdCron([sub = 'list', id], flags) {
   throw new CliError('Usage: nocturn cron [list|add|rm|run|enable|disable]');
 }
 
+// Semantic search over memories and the workspace, the same index the agent uses.
+async function cmdSearch(positional, flags) {
+  const query = positional.join(' ').trim() || flags.message || flags.m;
+  if (!query) throw new CliError('Usage: nocturn search "what you are looking for" [--files|--memory] [--json]');
+  const kinds = flags.files ? ['file'] : flags.memory ? ['memory'] : ['memory', 'file'];
+  const hits = await api('search', 'POST', { query, kinds });
+  out(flags, hits, () => {
+    if (!hits.length) { console.log('Nothing matches.'); return; }
+    for (const h of hits) {
+      console.log(`${h.kind === 'memory' ? pink('memory') : sage(clean(h.path))}${h.kind === 'file' ? dim(`:${h.pos}`) : ''}  ${dim(`score ${h.score}`)}`);
+      console.log(`  ${dim(clean(h.snippet))}`);
+    }
+  });
+}
+
+async function cmdIndex([sub], flags) {
+  const result = await api(sub === 'rebuild' ? 'index/rebuild' : 'index', 'POST', {});
+  out(flags, result, (r) => console.log(`${good('✓')} ${r.entries} chunks indexed, ${r.embedded} embedded just now  ${dim(`${r.provider} · ${r.model}`)}`));
+}
+
 async function cmdMemory([sub = 'list', ...rest], flags) {
   if (sub === 'list') {
     const { memory } = await api('state');
@@ -773,6 +795,8 @@ ${bold('Automation and knowledge')}
   nocturn cron list|add|rm|run|enable|disable
   nocturn memory list|add|rm
   nocturn skills list|rm
+  nocturn search "question"           Find memories and files by meaning
+  nocturn index [rebuild]             Refresh the search index
 
 ${bold('Mining')}
   nocturn mine [--threads N]          Mine ${TICKER} in this terminal, ctrl+c stops
@@ -788,7 +812,7 @@ const COMMANDS = {
   gateway: cmdGateway, status: cmdStatus, doctor: cmdDoctor, onboard: cmdOnboard, setup: cmdOnboard,
   agent: cmdAgent, chat: cmdChat, tui: cmdChat, message: cmdMessage, sessions: cmdSessions,
   channels: cmdChannels, pairing: cmdPairing, approvals: cmdApprovals, cron: cmdCron,
-  memory: cmdMemory, skills: cmdSkills, config: cmdConfig, dashboard: cmdDashboard, mine: cmdMine, pool: cmdPool, site: cmdSite,
+  memory: cmdMemory, skills: cmdSkills, search: cmdSearch, index: cmdIndex, config: cmdConfig, dashboard: cmdDashboard, mine: cmdMine, pool: cmdPool, site: cmdSite,
   logs: (_, flags) => tailLog(flags),
 };
 

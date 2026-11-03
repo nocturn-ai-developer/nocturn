@@ -116,7 +116,7 @@ Every tool has a policy. Defaults:
 | Tool | Default | What it can touch |
 |---|---|---|
 | `read_file`, `list_files` | auto | `~/.nocturn/workspace` only, symlinks resolved |
-| `memory_search`, `memory_save`, `load_skill` | auto | `~/.nocturn/memory.json`, `workspace/skills` |
+| `memory_search`, `search_workspace`, `memory_save`, `load_skill` | auto | `~/.nocturn/memory.json`, the workspace search index, `workspace/skills` |
 | `write_file`, `edit_file` | **ask** | the workspace |
 | `shell` | **ask** | your whole user account, **not sandboxed** |
 | `web_fetch`, `browser` | **ask** | public hosts only; loopback, LAN and cloud-metadata addresses are blocked |

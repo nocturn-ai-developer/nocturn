@@ -3,6 +3,7 @@ import { Agent } from './agent.mjs';
 import { ChannelHub } from './channels.mjs';
 import { Scheduler } from './scheduler.mjs';
 import { startServer } from './server.mjs';
+import { searchIndex } from './tools.mjs';
 
 export async function boot(port = Number(process.env.NOCTURN_PORT) || 18790, host = process.env.NOCTURN_HOST || '127.0.0.1') {
   const agent = new Agent();
@@ -13,6 +14,9 @@ export async function boot(port = Number(process.env.NOCTURN_PORT) || 18790, hos
   const server = await startServer({ agent, channels, scheduler, port, host });
   channels.restart();
   scheduler.start();
+  searchIndex.schedule(500);
+  const reindex = setInterval(() => searchIndex.refresh().catch(() => {}), 10 * 60 * 1000);
+  reindex.unref();
   return { agent, channels, scheduler, server, port: server.address().port };
 }
 

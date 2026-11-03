@@ -731,6 +731,20 @@ function viewSettings() {
   const openaiModel = h('input', { type: 'text', value: cfg.openaiModel, placeholder: 'llama3.2' });
   const openaiKey = h('input', { type: 'password', placeholder: cfg.openaiKey ? 'Saved · leave blank to keep' : 'Optional', autocomplete: 'off' });
   const persona = h('textarea', { rows: 4, value: cfg.persona });
+  const emb = cfg.embeddings ?? {};
+  const search = d.search ?? {};
+  const embProvider = select([['auto', 'Automatic (Voyage, then Ollama, then built-in)'], ['voyage', 'Voyage AI'], ['ollama', 'Ollama / OpenAI-compatible'], ['local', 'Built-in (no model needed)']], emb.provider ?? 'auto');
+  const embModel = h('input', { type: 'text', value: emb.model ?? '', placeholder: 'nomic-embed-text, bge-m3, voyage-3-large' });
+  const embBaseUrl = h('input', { type: 'text', value: emb.baseUrl ?? '', placeholder: 'Leave blank to use the provider base URL' });
+  const voyageKey = h('input', { type: 'password', placeholder: emb.voyageKey ? 'Saved · leave blank to keep' : 'pa-…', autocomplete: 'off' });
+  const reindex = h('button', { class: 'btn small', onclick: async (e) => { e.preventDefault(); try { const r = await api('index/rebuild', 'POST', {}); toast(`Indexed ${r.entries} chunks with ${r.provider}`, 'good'); } catch (err) { toast(err.message, 'bad'); } } }, 'Rebuild index');
+  const searchBox = h('div', { class: 'provider-box' },
+    h('p', { class: 'small-text' }, 'In use now: ', h('b', {}, `${search.provider ?? '?'} · ${search.model ?? ''}`), ` · ${search.entries ?? 0} chunks indexed`, search.note ? h('span', { class: 'muted' }, ` · ${search.note}`) : null),
+    h('label', { class: 'field' }, h('span', {}, 'Embedding backend'), embProvider, h('small', {}, 'Sharpest: Voyage voyage-3-large (cloud) or Ollama bge-m3 / nomic-embed-text (local, private). The built-in backend needs nothing but matches on words, not meaning.')),
+    h('label', { class: 'field' }, h('span', {}, 'Embedding model'), embModel),
+    h('label', { class: 'field' }, h('span', {}, 'Embedding endpoint'), embBaseUrl),
+    h('label', { class: 'field' }, h('span', {}, 'Voyage API key'), voyageKey),
+    h('div', { class: 'actions' }, reindex));
   const policies = {};
   const policyRows = d.toolNames.map((tool) => {
     policies[tool] = select([['auto', 'Always allow'], ['ask', 'Ask me'], ['deny', 'Block']], cfg.policies[tool] ?? 'ask');
@@ -754,6 +768,7 @@ function viewSettings() {
       provider: provider.value, model: model.value.trim() || cfg.model, effort: effort.value,
       openaiBaseUrl: openaiBaseUrl.value.trim() || cfg.openaiBaseUrl, openaiModel: openaiModel.value.trim(),
       persona: persona.value.trim() || cfg.persona,
+      embeddings: { provider: embProvider.value, model: embModel.value.trim(), baseUrl: embBaseUrl.value.trim(), ...(voyageKey.value.trim() ? { voyageKey: voyageKey.value.trim() } : {}) },
       policies: Object.fromEntries(Object.entries(policies).map(([tool, sel]) => [tool, sel.value])),
     };
     if (anthropicKey.value.trim()) patch.anthropicKey = anthropicKey.value.trim();
@@ -765,6 +780,8 @@ function viewSettings() {
       h('label', { class: 'field' }, h('span', {}, 'Provider'), provider),
       anthropicBox, openaiBox,
       h('label', { class: 'field' }, h('span', {}, 'Persona'), persona, h('small', {}, 'The first line of the system prompt.'))),
+    h('div', { class: 'section-title' }, 'Semantic search'),
+    h('div', { class: 'card' }, searchBox),
     h('div', { class: 'section-title' }, 'Tool permissions'),
     h('div', { class: 'card' }, policyRows, h('p', { class: 'muted small-text' }, 'The shell tool is not sandboxed: an approved command runs with your user\'s full permissions.')),
     h('div', { class: 'actions' }, h('button', { class: 'btn primary', onclick: save }, 'Save settings')), error,

@@ -248,12 +248,13 @@ Reply /approve or /deny</code></pre>
       <!-- 06 -->
       <section class="doc" id="tools-and-permissions">
         <h2>Tools and permissions</h2>
-        <p>The model gets twelve tools. Each has a policy in <code>config.policies</code>: <span class="pill auto">auto</span> runs without asking, <span class="pill ask">ask</span> waits for your answer, <span class="pill">deny</span> refuses and tells the model the tool is disabled.</p>
+        <p>The model gets thirteen tools. Each has a policy in <code>config.policies</code>: <span class="pill auto">auto</span> runs without asking, <span class="pill ask">ask</span> waits for your answer, <span class="pill">deny</span> refuses and tells the model the tool is disabled.</p>
         <div class="table-wrap"><table>
           <tr><th>Tool</th><th>Default</th><th>What it does</th></tr>
           <tr><td><code>read_file</code></td><td><span class="pill auto">auto</span></td><td>Reads a UTF-8 file from the workspace. Output is clipped at 50,000 characters.</td></tr>
           <tr><td><code>list_files</code></td><td><span class="pill auto">auto</span></td><td>Lists a workspace directory. Folders end with <code>/</code>.</td></tr>
-          <tr><td><code>memory_search</code></td><td><span class="pill auto">auto</span></td><td>Keyword search over saved memories. An empty query lists everything.</td></tr>
+          <tr><td><code>memory_search</code></td><td><span class="pill auto">auto</span></td><td>Semantic search over saved memories: meaning (embeddings) and exact words (BM25) fused. An empty query lists everything.</td></tr>
+          <tr><td><code>search_workspace</code></td><td><span class="pill auto">auto</span></td><td>Finds the workspace files and passages most relevant to a question, the same way. Returns paths and snippets to read next.</td></tr>
           <tr><td><code>memory_save</code></td><td><span class="pill auto">auto</span></td><td>Saves a durable fact about you or your work.</td></tr>
           <tr><td><code>load_skill</code></td><td><span class="pill auto">auto</span></td><td>Returns the full SKILL.md of an installed skill.</td></tr>
           <tr><td><code>write_file</code></td><td><span class="pill ask">ask</span></td><td>Creates or overwrites a file in the workspace, creating folders as needed.</td></tr>
@@ -301,6 +302,19 @@ Keep each line under 15 words.</code></pre>
 <pre><code><span class="p">$</span> nocturn memory add "I prefer short answers"
 <span class="p">$</span> nocturn memory list
 <span class="p">$</span> nocturn memory rm &lt;id&gt;</code></pre>
+        <h3 id="semantic-search">Semantic search</h3>
+        <p>The gateway keeps a search index over every memory and every text file in the workspace (<code>index.json</code> and <code>index.vec</code> in the data folder). Each chunk of about 700 characters gets an embedding and a BM25 entry. A query is ranked both ways and the two rankings are fused by reciprocal rank, so a paraphrase finds the right note and an exact file name, number or identifier still wins. The index refreshes after every file write and memory change, and every ten minutes; only changed chunks are embedded again.</p>
+        <p>Embeddings come from the best backend available, chosen automatically unless you pick one in Settings:</p>
+        <div class="table-wrap"><table>
+          <tr><th>Backend</th><th>Model</th><th>Notes</th></tr>
+          <tr><td>Voyage AI</td><td><code>voyage-3-large</code></td><td>Sharpest results. Needs a Voyage API key; text leaves the machine for embedding.</td></tr>
+          <tr><td>Ollama</td><td><code>nomic-embed-text</code>, <code>bge-m3</code>, <code>mxbai-embed-large</code></td><td>Private and free. Run <code>ollama pull bge-m3</code>, then set the model in Settings. Uses the OpenAI-compatible base URL.</td></tr>
+          <tr><td>Built-in</td><td>hashed features</td><td>Needs nothing. Matches on words and spelling, not meaning; BM25 still carries exact terms.</td></tr>
+        </table></div>
+<pre><code><span class="p">$</span> nocturn search "what did the client say about payment"
+<span class="p">$</span> nocturn search "database pool" --files
+<span class="p">$</span> nocturn index rebuild</code></pre>
+        <p>The HTTP API exposes the same index: <code>POST /api/search</code> with <code>{ "query": "...", "kinds": ["memory", "file"] }</code> and <code>POST /api/index</code> (or <code>/api/index/rebuild</code> after changing the backend). The current backend and chunk count appear in <code>nocturn status</code> and in the panel's Settings.</p>
         <h3>Cron jobs</h3>
         <p>A job runs a prompt on a 5-field cron schedule, <strong>in the server's local time</strong>. Each run is its own session named <code>cron:&lt;job id&gt;</code>, so a job keeps its history across runs. If the job has a <code>deliver</code> target, the reply is sent there.</p>
 <pre><code><span class="p">$</span> nocturn cron add --name brief --cron "0 8 * * 1-5" -m "plan my day" --deliver telegram:42</code></pre>
