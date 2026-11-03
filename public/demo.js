@@ -127,14 +127,15 @@ function buildDemo() {
       el('div', 'demo-panel', el('div', 'demo-panel-head', el('span', '', 'Workspace'), el('small', 'demo-panel-sub', '~/.nocturn/workspace')), fileChips, fileName, fileBody, preview)),
     el('div', 'win-foot', el('span', '', 'gateway · 127.0.0.1 only'), el('span', '', 'policy · asks before acting'), el('span', '', 'model · your choice')));
   const phone = el('div', 'phone',
-    el('div', 'phone-status', el('span', '', '9:41'), el('span', 'phone-island'), el('span', 'phone-signal', el('i'), el('i'), el('i'), el('i'), el('b'))),
+    el('div', 'phone-top'),
     el('div', 'phone-head', el('span', 'phone-avatar', 'N'), el('div', '', el('b', '', 'Nocturn'), el('small', '', 'bot · simulated chat'))),
     phoneBody,
-    el('div', 'phone-input', el('span', '', 'Message'), el('i')));
+    el('div', 'phone-input', el('span', '', 'Message'), el('i')),
+    el('div', 'phone-bottom'));
   const root = el('section', 'demo',
     el('div', 'demo-bar', tabs, el('span', 'demo-bar-end', el('span', 'demo-sim', 'Simulation'), trigger, stepLabel, pauseBtn)),
     el('div', 'demo-progress', bar),
-    el('div', 'demo-grid', window_, el('div', 'phone-shell', el('i', 'phone-btn action'), el('i', 'phone-btn vol-up'), el('i', 'phone-btn vol-down'), el('i', 'phone-btn power'), phone)));
+    el('div', 'demo-grid', window_, el('div', 'phone-shell', phone)));
   const setStep = (done, total) => {
     bar.style.width = `${(done / total) * 100}%`;
     stepLabel.textContent = `${done}/${total}`;
