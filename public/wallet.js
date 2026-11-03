@@ -37,7 +37,8 @@ export function walletButton(api) {
   const box = el('div', 'wallet', button, menu);
   let address = null;
 
-  const show = (...children) => { menu.replaceChildren(...children); menu.classList.remove('hidden'); };
+  const head = () => { const h = el('div', 'wallet-head', el('span', 'wallet-mark'), el('b', '', 'Nocturn'), el('small', '', 'Robinhood Chain')); h.firstChild.setAttribute('aria-hidden', 'true'); return h; };
+  const show = (...children) => { menu.replaceChildren(head(), ...children); menu.classList.remove('hidden'); };
   const hide = () => menu.classList.add('hidden');
   // The button reshapes itself between "Connect wallet" and the short address.
   const paint = () => {

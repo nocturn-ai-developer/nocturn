@@ -420,6 +420,10 @@ h1, h2, h3 { margin: 0; font-weight: 500; letter-spacing: -.03em; }
 .wallet-menu { position: absolute; top: calc(100% + 10px); right: 0; z-index: 30; width: 280px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: 0 30px 60px rgba(var(--shadow-rgb), .1); }
 .wallet-menu:not(.hidden) { animation: morph-pill .45s var(--spring) both; transform-origin: top right; }
 .wallet-menu p { margin: 0 0 10px; color: var(--soft); font-size: 13px; line-height: 1.5; }
+.wallet-head { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 10px; align-items: center; margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.wallet-head .wallet-mark { grid-row: 1 / 3; width: 30px; height: 24px; background: currentColor; -webkit-mask: url("/logo.png") center / contain no-repeat; mask: url("/logo.png") center / contain no-repeat; }
+.wallet-head b { font-size: 13px; }
+.wallet-head small { color: var(--muted); font-size: 11.5px; }
 .wallet-menu a { color: var(--accent); font-size: 13px; font-weight: 700; }
 ::view-transition-group(wallet) { animation-duration: .55s; animation-timing-function: var(--spring); }
 
