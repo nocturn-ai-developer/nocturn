@@ -737,6 +737,7 @@ function buildFooter(admin) {
       el('div', 'foot-brand',
         el('span', 'brand-mark foot-mark'),
         el('b', '', 'NOCTURN'),
+        el('small', 'foot-origin', 'Nocturn USA'),
         el('p', '', 'A self-hosted AI agent for your computer or server. It asks before it acts, and keeps working while you sleep.'),
         el('div', 'foot-install', el('code', '', el('span', '', '$ '), command), copy),
         el('div', 'foot-chips', el('span', '', el('i'), 'Open source'), el('span', '', el('i'), 'Asks before it acts'), el('span', '', el('i'), 'Runs where you run it'))),
@@ -745,7 +746,7 @@ function buildFooter(admin) {
       column('Token', link('$NCTRN', '/#token'), link('Robinhood Chain', CHAIN.blockExplorerUrls[0], true), x, el('small', 'foot-note', 'The contract address is published only on this site. Not financial advice.'))),
     el('div', 'foot-word', 'NOCTURN'),
     el('div', 'foot-bar',
-      el('span', '', `© ${year} Nocturn · nocturnh.com`),
+      el('span', '', `© ${year} Nocturn USA · All rights reserved · nocturnh.com`),
       el('span', 'foot-bar-links', link('Privacy', '/privacy'), link('Terms', '/terms'), link('Docs', '/docs'), admin, top)));
   return footer;
 }
