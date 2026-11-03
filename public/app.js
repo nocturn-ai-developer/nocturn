@@ -180,7 +180,7 @@ function welcome() {
     h('button', { class: 'btn dark scroll-more', onclick: () => jump('night') }, h('span', { 'aria-hidden': 'true' }, '↓'), 'Scroll for more'),
     h('article', { class: 'hero-card' },
       h('span', { class: 'hero-num' }, '01'),
-      h('div', {}, h('time', { datetime: '2026-11-02' }, 'Nov 2, 2026'), h('h3', {}, 'Published on npm as', h('br'), '@morpheapp/nocturn')),
+      h('div', {}, h('h3', {}, 'Published on npm as', h('br'), '@morpheapp/nocturn')),
       h('p', {}, 'Nocturn is a self-hosted AI agent with a built-in miner for your CPU and GPU. One gateway runs on your own machine, takes jobs from the terminal or your chat apps, asks before anything risky, and keeps going while you sleep.')));
 }
 

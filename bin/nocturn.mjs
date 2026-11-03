@@ -149,7 +149,8 @@ function out(flags, value, render) {
   else render(value);
 }
 
-const when = (iso) => (iso ? new Date(iso).toLocaleString() : 'never');
+// US format everywhere, whatever the machine's locale: Nov 3, 2026, 5:41 PM.
+const when = (iso) => (iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'never');
 
 /* Gateway */
 function readPid() {

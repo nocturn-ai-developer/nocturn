@@ -105,7 +105,7 @@ export function renderFrame(s, paint, columns = 80) {
       `${label('JOB')}${bar(s.tried / 2 ** j.difficulty)} ${dim(`${j.difficulty} bits`)}`,
       `${label('ROUND')}${bar(1 - left / j.roundMs)} ${dim(`${clock(left).slice(3)} left · ${j.miners} miners`)}`,
       `${label('THIS ROUND')}${good(`+${money(estimate)} ${TICKER}`)} ${dim(`est. · ${round}% of ${money(j.rewardCents)}`)}`,
-      `${label('LAST PAYOUT')}${j.lastPayout ? `${bold(`+${money(j.lastPayout.cents)} ${TICKER}`)} ${dim(new Date(j.lastPayout.at).toLocaleTimeString())}` : dim('none yet')}`,
+      `${label('LAST PAYOUT')}${j.lastPayout ? `${bold(`+${money(j.lastPayout.cents)} ${TICKER}`)} ${dim(new Date(j.lastPayout.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }))}` : dim('none yet')}`,
       `${label('BALANCE')}${bold(`${money(j.cents)} ${TICKER}`)} ${dim(`+${money(j.cents - s.startCents)} this session`)}`,
     );
   } else panel.push(`${label('JOB')}${dim('waiting for the pool')}`);
