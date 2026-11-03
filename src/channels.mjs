@@ -196,7 +196,8 @@ export class ChannelHub {
       const adapter = this.active.get(e.sessionId.slice(0, split));
       if (split < 1 || !adapter) return;
       const detail = JSON.stringify(e.input).slice(0, 300);
-      adapter.send(e.sessionId.slice(split + 1), `Allow ${e.tool}?\n${detail}\n\nReply /approve or /deny`).catch(() => {});
+      const flag = e.risk ? `${e.risk.level === 'high' ? '⚠ ' : ''}${e.risk.reasons.length ? `${e.risk.reasons.join(', ')}. ` : ''}${e.risk.label}` : '';
+      adapter.send(e.sessionId.slice(split + 1), `Allow ${e.tool}?\n${detail}${flag ? `\n${flag}` : ''}\n\nReply /approve or /deny`).catch(() => {});
     });
   }
 

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { SESSIONS_DIR, config, readJson, writeJson } from './config.mjs';
 import { complete } from './providers.mjs';
 import { memory, runTool, skills, toolDefinitions, validateInput } from './tools.mjs';
+import { risk } from './risk.mjs';
 
 const MAX_STEPS = 40;
 const APPROVAL_TIMEOUT_MS = 10 * 60 * 1000;
@@ -49,13 +50,13 @@ export class Agent extends EventEmitter {
   channels = null;
 
   pendingApprovals() {
-    return [...this.approvals.values()].map(({ id, sessionId, tool, input }) => ({ id, sessionId, tool, input }));
+    return [...this.approvals.values()].map(({ id, sessionId, tool, input, risk: r }) => ({ id, sessionId, tool, input, risk: r }));
   }
 
   resolveApproval(id, approved) {
     const pending = this.approvals.get(id);
     if (!pending) return false;
-    pending.finish(approved);
+    pending.finish(approved, 'owner');
     return true;
   }
 
@@ -75,18 +76,20 @@ export class Agent extends EventEmitter {
   #requestApproval(sessionId, tool, input, signal) {
     return new Promise((resolve) => {
       const id = randomUUID();
-      const timer = setTimeout(() => finish(false), APPROVAL_TIMEOUT_MS);
-      const onAbort = () => finish(false);
-      const finish = (approved) => {
+      const assessment = risk.score(tool, input);
+      const timer = setTimeout(() => finish(false, 'timeout'), APPROVAL_TIMEOUT_MS);
+      const onAbort = () => finish(false, 'cancel');
+      const finish = (approved, by) => {
         clearTimeout(timer);
         signal.removeEventListener('abort', onAbort);
         this.approvals.delete(id);
-        this.emit('event', { type: 'approval_resolved', id, sessionId, approved });
+        risk.record({ tool, input, approved, by, sessionId });
+        this.emit('event', { type: 'approval_resolved', id, sessionId, approved, by });
         resolve(approved);
       };
       signal.addEventListener('abort', onAbort, { once: true });
-      this.approvals.set(id, { id, sessionId, tool, input, finish });
-      this.emit('event', { type: 'approval', id, sessionId, tool, input });
+      this.approvals.set(id, { id, sessionId, tool, input, risk: assessment, finish });
+      this.emit('event', { type: 'approval', id, sessionId, tool, input, risk: assessment });
     });
   }
 

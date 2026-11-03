@@ -325,6 +325,12 @@ async function* gatewayEvents(signal) {
   }
 }
 
+// One line from the risk assessment: rules first, then what the owner usually does.
+function riskLine(r) {
+  const mark = r.level === 'high' ? bad('▲ high') : r.level === 'medium' ? pink('● medium') : good('○ low');
+  return `${mark} ${r.reasons.length ? `${clean(r.reasons.join(', '))} · ` : ''}${dim(clean(r.label))}`;
+}
+
 function describeInput(input) {
   const text = clean(input?.command ?? input?.path ?? input?.url ?? input?.target ?? JSON.stringify(input ?? {}));
   return text.length > 100 ? `${text.slice(0, 100)}…` : text;
@@ -378,7 +384,9 @@ async function runTurn(sessionId, text, { rl, json }) {
           if (rl) {
             status.clear();
             const detail = describeInput(e.input);
-            write(`\n${box([`? Allow ${e.tool}?`, `  ${detail}`], pink)}\n`);
+            const lines = [`? Allow ${e.tool}?`, `  ${detail}`];
+            if (e.risk) lines.push(`  ${riskLine(e.risk)}`);
+            write(`\n${box(lines, e.risk?.level === 'high' ? bad : pink)}\n`);
             const answer = await rl.question(`  ${pink('›')} ${bold('Allow?')} ${dim('[y/N]')} `).catch(() => '');
             approved = /^y(es)?$/i.test(answer.trim());
             write(`  ${approved ? good('✓ allowed') : bad('✗ denied')}\n`);
@@ -507,7 +515,7 @@ async function cmdApprovals([sub = 'list', id], flags) {
     const { approvals } = await api('state');
     out(flags, approvals, () => {
       if (!approvals.length) console.log('Nothing is waiting for approval.');
-      for (const a of approvals) console.log(`${a.id}  ${bold(a.tool)}  ${describeInput(a.input)}`);
+      for (const a of approvals) console.log(`${a.id}  ${bold(a.tool)}  ${describeInput(a.input)}${a.risk ? `\n    ${riskLine(a.risk)}` : ''}`);
     });
     return;
   }

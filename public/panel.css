@@ -136,6 +136,14 @@ code.cron { display: inline-block; margin: 4px 0 6px 10px; padding: 2px 8px; }
 .approval-head b { font: 600 13px var(--mono); }
 .approval .actions { margin-top: 12px; }
 .approval-answer { margin-top: 10px; font: 700 12px var(--mono); }
+.approval.high { border-color: var(--bad); box-shadow: 0 10px 30px rgba(214, 69, 98, .14); }
+.risk { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 10px 0 0; font-size: 12px; }
+.risk-level { padding: 2px 9px; border-radius: 999px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 10.5px; }
+.risk-low .risk-level { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.risk-medium .risk-level { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+.risk-high .risk-level { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+.risk-reasons { color: var(--text); font-weight: 600; }
+.risk-label { color: var(--muted); }
 .turn-error { margin: 6px 0; padding: 10px 14px; border: 1px solid var(--bad); border-radius: 12px; color: var(--bad); font-size: 13.5px; }
 .chat-empty { padding: 60px 0 20px; text-align: center; }
 .chat-empty .brand-mark.big, .connect-card .brand-mark.big { width: 72px; height: 56px; margin: 0 auto 22px; }

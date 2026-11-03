@@ -302,6 +302,13 @@ Keep each line under 15 words.</code></pre>
 <pre><code><span class="p">$</span> nocturn memory add "I prefer short answers"
 <span class="p">$</span> nocturn memory list
 <span class="p">$</span> nocturn memory rm &lt;id&gt;</code></pre>
+        <h3 id="approval-risk">Approval risk</h3>
+        <p>Every tool call that waits for your answer carries a short assessment, in the terminal box, the chat prompt and the panel card. It comes from two places and it never decides for you:</p>
+        <ul>
+          <li><strong>Rules that never change.</strong> Recursive deletes, disk rewrites, elevation, <code>curl | sh</code>, reboots, force pushes, secrets files, paths that climb out of the workspace, plain-http fetches, outgoing messages. A hit sets the level to <em>high</em> or <em>medium</em> and names the reason.</li>
+          <li><strong>What you decided before.</strong> A naive Bayes model trained online from your own approve and deny answers, over features such as the command name and flags, the folder and extension, the host, the chat target or the cron line. Timeouts and canceled runs are logged in <code>decisions.jsonl</code> but never train it. With three or more comparable decisions it says “You usually allow this (9 of 9)” or “You usually deny this”; with none it says “New”, and new things are never marked low.</li>
+        </ul>
+        <p>Delete <code>~/.nocturn/decisions.jsonl</code> to forget the history. The assessment is also in <code>GET /api/state</code> under each pending approval as <code>risk: { level, label, reasons, p, seen }</code>.</p>
         <h3 id="voice-notes">Voice notes</h3>
         <p>A voice note on Telegram, or an audio file dropped in Discord, is turned into text before the agent sees it, and the agent's answer comes back as a normal message. Strangers still get the pairing code first; nothing is downloaded until a sender is allowed. Recordings are capped at 25 MB.</p>
         <div class="table-wrap"><table>

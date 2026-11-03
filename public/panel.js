@@ -393,8 +393,9 @@ const chat = (() => {
   }
 
   function approvalCard(e) {
-    const card = h('div', { class: 'approval' },
+    const card = h('div', { class: `approval ${e.risk?.level === 'high' ? 'high' : ''}` },
       h('div', { class: 'approval-head' }, h('span', { class: 'pill' }, 'Needs your yes'), h('b', {}, e.tool)),
+      riskBadge(e.risk),
       h('pre', { class: 'approval-detail' }, JSON.stringify(e.input ?? {}, null, 2).slice(0, 4000)),
       h('div', { class: 'actions' },
         h('button', { class: 'btn small primary', onclick: () => answer(true) }, 'Allow'),
@@ -587,10 +588,20 @@ const chat = (() => {
 })();
 
 /* Approvals */
+// Rules and the owner's own history, as a short strip under a pending tool call.
+function riskBadge(r) {
+  if (!r) return null;
+  const glyph = r.level === 'high' ? '▲' : r.level === 'medium' ? '●' : '○';
+  return h('div', { class: `risk risk-${r.level}` },
+    h('span', { class: 'risk-level' }, `${glyph} ${r.level}`),
+    r.reasons.length ? h('span', { class: 'risk-reasons' }, r.reasons.join(' · ')) : null,
+    h('span', { class: 'risk-label' }, r.label));
+}
+
 function viewApprovals() {
   const d = ui.data;
   const approvals = d.approvals.map((a) => h('div', { class: 'card' }, h('div', { class: 'row wrap' },
-    h('div', { class: 'row-text' }, h('b', {}, a.tool), h('span', { class: 'muted' }, ` · session ${a.sessionId}`), h('pre', { class: 'approval-detail' }, JSON.stringify(a.input ?? {}, null, 2).slice(0, 4000))),
+    h('div', { class: 'row-text' }, h('b', {}, a.tool), h('span', { class: 'muted' }, ` · session ${a.sessionId}`), riskBadge(a.risk), h('pre', { class: 'approval-detail' }, JSON.stringify(a.input ?? {}, null, 2).slice(0, 4000))),
     h('div', { class: 'actions tight' },
       h('button', { class: 'btn small primary', onclick: () => act(() => api(`approvals/${encodeURIComponent(a.id)}`, 'POST', { approved: true })) }, 'Allow'),
       h('button', { class: 'btn small danger', onclick: () => act(() => api(`approvals/${encodeURIComponent(a.id)}`, 'POST', { approved: false })) }, 'Deny')))));

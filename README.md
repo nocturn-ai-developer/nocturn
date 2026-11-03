@@ -101,6 +101,7 @@ A turn is simple: your message goes into a session, the model answers or asks fo
 |---|---|
 | **Talk from anywhere** | Terminal, the control panel, Telegram, Discord and Slack all reach the same gateway. Strangers get a six-digit pairing code that you approve first. |
 | **Voice notes** | A Telegram voice note or a Discord audio file is transcribed first, by whisper.cpp on your machine or any OpenAI-compatible Whisper endpoint, then answered like text. |
+| **Knows what you usually allow** | Every approval carries a risk line: fixed rules for destructive or secret-touching calls, plus a naive Bayes model trained on your own approve/deny history. It labels and sorts; it never decides. |
 | **Finds things by meaning** | Memories and workspace files are indexed with embeddings plus BM25, fused by reciprocal rank. `nocturn search "what did the client say"` and the agent's `search_workspace` tool use the same index. |
 | **Works on a schedule** | `nocturn cron add --cron "0 8 * * 1-5" -m "plan my day" --deliver telegram:<chat>`. Five-field cron in server local time, results delivered to a chat. |
 | **Remembers** | Memories carry across conversations. Skills are `SKILL.md` files in the workspace, loaded on demand. |
