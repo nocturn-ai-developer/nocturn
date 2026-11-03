@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Nocturn · Privacy</title>
+  <meta name="description" content="The nocturnh.com privacy policy: the site collects almost nothing, the software keeps everything on your own machine.">
+  <link rel="canonical" href="https://nocturnh.com/privacy">
+  <meta property="og:title" content="Nocturn · Privacy">
+  <meta property="og:description" content="The nocturnh.com privacy policy: the site collects almost nothing, the software keeps everything on your own machine.">
+  <meta property="og:url" content="https://nocturnh.com/privacy">
+  <meta property="og:site_name" content="Nocturn">
+  <meta property="og:image" content="https://nocturnh.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/icon.png" type="image/png">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/docs.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-start">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>NOCTURN</a>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><b>Privacy</b></nav>
+    </div>
+    <div class="topbar-end">
+      <button id="theme" class="theme-btn" type="button"><span aria-hidden="true">☾</span></button>
+      <a class="home-link" href="/#download">Download</a>
+    </div>
+  </header>
+
+  <div class="layout single">
+    <main class="content">
+      <div class="page-head">
+        <span class="kicker">Privacy policy</span>
+        <h1>What this site and the software know about you</h1>
+        <p class="lede">Short version: the website collects almost nothing, and the software keeps everything on your own machine. Last updated November 3, 2026.</p>
+      </div>
+
+      <section class="doc" id="site">
+        <h2>This website</h2>
+        <p>nocturnh.com is a static site served by Cloudflare. It has no accounts, no forms that send data to us, and no advertising. The <em>Connect wallet</em> button talks to the wallet extension in your browser and sends nothing to this site.</p>
+        <p>We use Cloudflare Web Analytics to count visits and see which pages are read. It does not use cookies, does not fingerprint your device, and does not follow you to other sites. Cloudflare also sees the usual server logs needed to serve the site, such as your IP address, under <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare's privacy policy</a>.</p>
+        <p>Your theme choice is kept in your browser's local storage. The admin page at <code>/admin</code> is for the site owner only and stores a session in your tab until you close it.</p>
+      </section>
+      <section class="doc" id="software">
+        <h2>The software</h2>
+        <p>Nocturn runs on your computer or server. Your configuration, API keys, chat history, memories, workspace files, search index, voice recordings while they are being transcribed, and approval decisions live in <code>~/.nocturn</code> on that machine and are never sent to us. We run no server that the software reports to.</p>
+        <p>The software does send data to services <strong>you</strong> configure: your model provider (Anthropic, OpenAI, or a local model such as Ollama), your embedding or transcription backend if you chose a cloud one, the chat platforms you connect (Telegram, Discord, Slack), and the websites the agent fetches at your request. Each of those is governed by its own privacy policy. With a local model, a local embedding model and whisper.cpp, nothing leaves the machine.</p>
+        <p>The miner talks to the pool server you point it at. The pool stores your miner name, a hash of your token, your balance, and the wallet address you link by signing a message. It never sees a private key.</p>
+      </section>
+      <section class="doc" id="downloads">
+        <h2>Downloads</h2>
+        <p>Installer downloads are served from Cloudflare R2. We see the same server logs as for any page. The installers contact no server of ours after installation; update checks do not exist yet, so you update by downloading a new version.</p>
+      </section>
+      <section class="doc" id="contact">
+        <h2>Questions</h2>
+        <p>Open an issue on <a href="https://github.com/nocturn-ai-developer/nocturn/issues" target="_blank" rel="noopener noreferrer">GitHub</a>. If this policy changes, the date at the top changes with it.</p>
+      </section>
+
+      <p class="foot">© Nocturn · <a href="/">nocturnh.com</a> · <a href="/docs">Docs</a> · <a href="/install">Install guide</a> · <a href="/changelog">Changelog</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+    </main>
+  </div>
+
+  <script type="module" src="/page.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Nocturn · Install guide</title>
+  <meta name="description" content="How to install Nocturn on Windows, macOS, Linux and Android, including the warnings your OS shows for unsigned installers.">
+  <link rel="canonical" href="https://nocturnh.com/install">
+  <meta property="og:title" content="Nocturn · Install guide">
+  <meta property="og:description" content="How to install Nocturn on Windows, macOS, Linux and Android, including the warnings your OS shows for unsigned installers.">
+  <meta property="og:url" content="https://nocturnh.com/install">
+  <meta property="og:site_name" content="Nocturn">
+  <meta property="og:image" content="https://nocturnh.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/icon.png" type="image/png">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/docs.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-start">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>NOCTURN</a>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><b>Install</b></nav>
+    </div>
+    <div class="topbar-end">
+      <button id="theme" class="theme-btn" type="button"><span aria-hidden="true">☾</span></button>
+      <a class="home-link" href="/#download">Download</a>
+    </div>
+  </header>
+
+  <div class="layout single">
+    <main class="content">
+      <div class="page-head">
+        <span class="kicker">Install guide</span>
+        <h1>Get Nocturn running on your machine</h1>
+        <p class="lede">Pick your platform. Each path ends with the same gateway on your own computer, the control panel in a window or a browser tab, and an agent that asks before it acts.</p>
+      </div>
+
+      <section class="doc" id="windows">
+        <h2>Windows</h2>
+        <p>Download <a href="/#download">Nocturn-Setup.exe</a> and run it. The installer puts Nocturn in your user folder, adds a Start menu entry and a desktop shortcut, and needs no admin rights.</p>
+        <div class="note warn"><i>!</i><p><strong>Windows will show a blue “Windows protected your PC” screen.</strong> The installer is not yet signed with a paid code-signing certificate, so SmartScreen does not know it. Click <em>More info</em>, then <em>Run anyway</em>. The file you downloaded from this site is the same one GitHub Actions built from the public source; you can compare its SHA-256 with the one on the <a href="https://github.com/nocturn-ai-developer/nocturn/releases/latest" target="_blank" rel="noopener noreferrer">release page</a>.</p></div>
+        <p>Prefer the terminal? In PowerShell:</p>
+<pre><code><span class="p">$</span> npm.cmd install -g @morpheapp/nocturn
+<span class="p">$</span> nocturn.cmd onboard</code></pre>
+        <p>If PowerShell refuses with “running scripts is disabled”, use the <code>.cmd</code> forms above, or allow local scripts once with <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code>.</p>
+      </section>
+      <section class="doc" id="macos">
+        <h2>macOS</h2>
+        <p>Download <a href="/#download">Nocturn.dmg</a>, open it, and drag Nocturn into Applications. It works on Apple silicon and Intel.</p>
+        <div class="note warn"><i>!</i><p><strong>macOS will say the app “is damaged” or “cannot be opened because the developer cannot be verified.”</strong> The app is not yet notarized with an Apple Developer ID. Open Terminal and remove the quarantine flag once:</p></div>
+<pre><code><span class="p">$</span> xattr -dr com.apple.quarantine /Applications/Nocturn.app</code></pre>
+        <p>Then open it normally. Or install from the terminal, which needs no workaround:</p>
+<pre><code><span class="p">$</span> npm install -g @morpheapp/nocturn
+<span class="p">$</span> nocturn onboard</code></pre>
+      </section>
+      <section class="doc" id="linux">
+        <h2>Linux</h2>
+        <p>Use npm with Node 22 or newer. To keep the gateway running after you log out, install it as a user service.</p>
+<pre><code><span class="p">$</span> npm install -g @morpheapp/nocturn
+<span class="p">$</span> nocturn onboard
+<span class="p">$</span> nocturn gateway install
+<span class="p">$</span> loginctl enable-linger $USER</code></pre>
+      </section>
+      <section class="doc" id="android">
+        <h2>Android</h2>
+        <p>The Android app is a client. It does not run the agent; it connects to a gateway you run on a computer or server. Download <a href="/#download">Nocturn.apk</a> on the phone and open it.</p>
+        <div class="note warn"><i>!</i><p><strong>Android will ask you to allow installs from this source</strong> because the app is not on the Play Store. Allow it for your browser, install, and you can turn the permission off again afterwards.</p></div>
+        <p>On the first screen, enter the gateway address and the private token from <code>nocturn dashboard</code>. Both devices must share a private network such as Tailscale, and the gateway must be started with <code>NOCTURN_HOST=0.0.0.0</code> and <code>NOCTURN_TRUSTED_HOSTS=&lt;its address on that network&gt;</code>. Never expose the gateway to the open internet.</p>
+      </section>
+      <section class="doc" id="web-app">
+        <h2>Web app, any device</h2>
+        <p>Open <code>http://127.0.0.1:18790/panel.html</code> on the machine that runs the gateway, or through an SSH tunnel from another one, and choose <em>Install app</em> in the browser menu. It is the same control panel the desktop app shows.</p>
+<pre><code><span class="p">$</span> ssh -L 18790:127.0.0.1:18790 user@your-server</code></pre>
+      </section>
+      <section class="doc" id="after">
+        <h2>After installing</h2>
+        <p><code>nocturn onboard</code> asks for a model provider and key, optionally connects Telegram, and starts the gateway. Then try <code>nocturn chat</code>, read the <a href="/docs">documentation</a>, or message your bot and approve the pairing code with <code>nocturn pairing approve &lt;code&gt;</code>.</p>
+      </section>
+
+      <p class="foot">© Nocturn · <a href="/">nocturnh.com</a> · <a href="/docs">Docs</a> · <a href="/install">Install guide</a> · <a href="/changelog">Changelog</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+    </main>
+  </div>
+
+  <script type="module" src="/page.js"></script>
+</body>
+</html>

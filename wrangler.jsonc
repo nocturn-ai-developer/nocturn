@@ -4,7 +4,7 @@
   "name": "nocturnh",
   "main": "worker/index.mjs",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "./site", "binding": "ASSETS" },
+  "assets": { "directory": "./site", "binding": "ASSETS", "not_found_handling": "404-page" },
   "r2_buckets": [
     { "binding": "DOWNLOADS", "bucket_name": "nocturn-downloads" }
   ],

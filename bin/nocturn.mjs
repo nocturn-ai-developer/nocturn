@@ -719,10 +719,21 @@ async function cmdSite([sub], flags) {
   cpSync(join(ROOT, 'public'), outDir, { recursive: true });
   writeFileSync(join(outDir, 'partners.json'), JSON.stringify(partners.list().map(({ name, logo }) => ({ name, logo }))));
   writeFileSync(join(outDir, 'downloads.json'), JSON.stringify(DOWNLOADS)); // installer links for the Download buttons
+  // Cloudflare Web Analytics (cookie-less): set nocturn.analyticsToken in package.json to turn it on.
+  const analytics = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).nocturn?.analyticsToken ?? '';
+  if (analytics) {
+    const { readdirSync } = await import('node:fs');
+    const beacon = `  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "${analytics}"}'></script>\n</body>`;
+    for (const f of readdirSync(outDir).filter((n) => n.endsWith('.html'))) {
+      const file = join(outDir, f);
+      writeFileSync(file, readFileSync(file, 'utf8').replace(/<\/body>/, beacon));
+    }
+  }
   writeFileSync(join(outDir, '_headers'), `/*
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
 `);
   console.log(`Site written to ${outDir}\nDeploy that folder to your static host, for example:\n  ${process.platform === 'win32' ? 'npx.cmd' : 'npx'} wrangler deploy   (from the folder with wrangler.jsonc)`);
 }

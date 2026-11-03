@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Nocturn · Changelog</title>
+  <meta name="description" content="Release notes for every Nocturn version.">
+  <link rel="canonical" href="https://nocturnh.com/changelog">
+  <meta property="og:title" content="Nocturn · Changelog">
+  <meta property="og:description" content="Release notes for every Nocturn version.">
+  <meta property="og:url" content="https://nocturnh.com/changelog">
+  <meta property="og:site_name" content="Nocturn">
+  <meta property="og:image" content="https://nocturnh.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/icon.png" type="image/png">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/docs.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-start">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>NOCTURN</a>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><b>Changelog</b></nav>
+    </div>
+    <div class="topbar-end">
+      <button id="theme" class="theme-btn" type="button"><span aria-hidden="true">☾</span></button>
+      <a class="home-link" href="/#download">Download</a>
+    </div>
+  </header>
+
+  <div class="layout single">
+    <main class="content">
+      <div class="page-head">
+        <span class="kicker">Changelog</span>
+        <h1>What changed, release by release</h1>
+        <p class="lede">Installers for every version are on the GitHub release page. The npm package follows the same numbers.</p>
+      </div>
+
+      <section class="doc" id="v0-2-1">
+        <h2>0.2.1 <small class="muted">November 3, 2026</small></h2>
+        <ul>
+          <li>Desktop app for Windows (.exe) and macOS (.dmg): the gateway in a window, with a tray icon that keeps it running when the window is closed.</li>
+          <li>Android client (.apk) and an installable web app, both connecting to a gateway you run elsewhere.</li>
+          <li>Control panel: chat with streaming and inline approvals, channels, schedules, memory, skills and settings in one page.</li>
+          <li>Semantic search over memories and the workspace: embeddings (Voyage, Ollama or built-in) fused with BM25. New <code>search_workspace</code> tool, <code>nocturn search</code> and <code>nocturn index</code>.</li>
+          <li>Voice notes from Telegram and audio files from Discord are transcribed before the agent reads them, by whisper.cpp or any OpenAI-compatible Whisper endpoint.</li>
+          <li>Approval risk: fixed rules for destructive calls plus a model trained on your own approve and deny answers, shown on every pending approval.</li>
+          <li>Terminal: a splash with the particle moon, a proper chat session, tool cards, boxed approvals, aligned status and doctor output.</li>
+          <li>Website: dark mode, documentation, download section, admin page for the token contract and X account, SEO and this changelog.</li>
+          <li>Opt-in <code>NOCTURN_HOST</code> and <code>NOCTURN_TRUSTED_HOSTS</code> for reaching the gateway from a phone over a private network.</li>
+          <li>CI builds all three installers on a version tag and publishes a GitHub release.</li>
+        </ul>
+      </section>
+      <section class="doc" id="v0-2-0">
+        <h2>0.2.0 <small class="muted">November 2, 2026</small></h2>
+        <ul>
+          <li>Miner with CPU auto-tune by temperature and memory, the pool server, and wallet linking by signature on Robinhood Chain.</li>
+          <li>Landing page with the scripted demo, the night timeline and the token section.</li>
+          <li>Gateway hardening: Host and Origin checks, private-address blocking for web tools, symlink-safe workspace paths.</li>
+        </ul>
+      </section>
+      <section class="doc" id="v0-1-0">
+        <h2>0.1.0</h2>
+        <ul>
+          <li>First release: gateway, CLI, Telegram, Discord and Slack channels, approvals, cron schedules, memory and skills.</li>
+        </ul>
+      </section>
+
+      <p class="foot">© Nocturn · <a href="/">nocturnh.com</a> · <a href="/docs">Docs</a> · <a href="/install">Install guide</a> · <a href="/changelog">Changelog</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+    </main>
+  </div>
+
+  <script type="module" src="/page.js"></script>
+</body>
+</html>
