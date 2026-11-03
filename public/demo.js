@@ -515,15 +515,19 @@ function buildWhy() {
 
 /* Light by design: an x-ray flower that blooms, labelled like a specimen */
 function buildLight() {
-  const fact = (value, label) => el('div', 'light-fact', el('b', '', value), el('span', '', label));
+  const fact = (value, label, sub) => el('div', 'light-fact', el('b', '', value), el('span', '', label), sub ? el('small', '', sub) : null);
+  const point = (title, text) => el('li', '', el('b', '', title), el('span', '', text));
   return el('section', 'light reveal',
-    el('div', 'light-art', bloomingFlower([['object (1)', 'gateway, idle', '0.0% CPU'], ['object (2)', 'memory', '63 MB'], ['object (3)', 'new hardware', 'none']])),
+    el('div', 'light-art', bloomingFlower([['gateway', 'idle, waiting', '~0% CPU'], ['memory', 'at rest', 'under 100 MB'], ['hardware', 'yours', 'nothing new']])),
     el('div', 'light-copy',
-      el('span', 'pill', 'Energy'),
+      el('span', 'pill', 'Footprint'),
       el('h2', '', 'Light by design'),
-      el('p', '', 'Nocturn needs no new machine and no data center of its own. It runs on the computer or server you already have, and while it waits for work it uses almost nothing.'),
-      el('div', 'light-facts', fact('0.0%', 'CPU while idle'), fact('63 MB', 'memory'), fact('0', 'new machines')),
-      el('p', 'light-note', 'Measured on one Windows laptop with the gateway waiting for a task. Model calls run on your provider\'s servers, and mining uses power for every thread you give it. For the lightest setup, use a local model and a host that runs on renewable energy.')));
+      el('p', '', 'One small process on a machine you already own. It sits almost idle until there is work, then uses exactly what you hand it: the model you picked, the threads you allow, the GPU if you switch it on.'),
+      el('div', 'light-facts', fact('1', 'process', 'the gateway, nothing else'), fact('~0%', 'CPU at rest', 'wakes only for a job'), fact('<100 MB', 'memory at rest', 'a browser tab uses more')),
+      el('ul', 'light-points',
+        point('Runs where you already are', 'a laptop, a $5 VPS, a spare Mac mini. No new machine, no data center of its own.'),
+        point('Zero cloud, if you want it', 'with a local model, local embeddings and whisper.cpp, nothing leaves the box.'),
+        point('Scales only on your say-so', 'mining and heavy jobs use the CPU threads and GPU you enable, and auto-tune backs off when the machine runs hot.'))));
 }
 
 /* A flower drawn in pixels that grows when it comes into view */
