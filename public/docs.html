@@ -416,7 +416,16 @@ Keep each line under 15 words.</code></pre>
       <section class="doc" id="mining">
         <h2>Mining</h2>
         <p><code>nocturn mine</code> hashes SHA-256 on your CPU and reports shares to a pool. Balances are in <strong>NOCT</strong>, a number kept by the pool server. NOCT is not a coin on a blockchain, cannot be withdrawn, and has no guaranteed value. Only mine on a machine you own or have permission to use.</p>
-        <h3>Start mining</h3>
+        <h3 id="gpu-mining">CPU and GPU together</h3>
+        <p>The <strong>Miner</strong> page in the control panel (the desktop app, or <code>/panel.html</code> on your gateway) runs both. CPU threads hash inside the gateway, the same worker threads <code>nocturn mine</code> uses. The GPU hashes in the panel window through <strong>WebGPU</strong>: a compute shader runs SHA-256 on whatever card the browser supports, NVIDIA, AMD, Intel or Apple, with no CUDA or OpenCL install. Every GPU hit is re-checked on the CPU before it is sent to the gateway, which forwards it to the pool like any other share.</p>
+        <ul>
+          <li>No GPU, or a browser without WebGPU: the toggle is disabled and the CPU threads mine alone.</li>
+          <li>Both: both hash at once; the pool credits work from either. Expect the GPU to find most shares and the difficulty to climb into the thirties and forties.</li>
+          <li>The GPU stops when the panel window closes; the CPU threads keep going in the gateway until you press Stop.</li>
+          <li>The anti-bot check is answered on the Miner page. Auto-tune still watches CPU temperature and memory.</li>
+        </ul>
+        <p>Set the pool address once in the Miner page (or <code>mining.pool</code> in config). The HTTP API behind it: <code>GET /api/mine</code>, <code>POST /api/mine/register</code>, <code>/start</code>, <code>/stop</code>, <code>/answer</code>, <code>/shares</code> and <code>/gpu</code>, plus <code>mine</code>, <code>mine_job</code> and <code>mine_question</code> events on the SSE stream.</p>
+        <h3>Start mining from the terminal</h3>
 <pre><code><span class="p">$</span> nocturn mine
 <span class="p">$</span> nocturn mine --threads 4
 <span class="p">$</span> nocturn mine balance</code></pre>

@@ -118,7 +118,7 @@ export function renderFrame(s, paint, columns = 80) {
     `${label('WALLET')}${j?.wallet ? `${j.wallet.slice(0, 6)}…${j.wallet.slice(-4)} ${dim('· linked')}` : dim(s.walletNote ?? 'none, connect one on the web page')}`,
     dim('─'.repeat(50)),
     `${label('PROCESSOR')}${hw ? fit(`${hw.cpu.model}${hw.cpu.cores ? ` · ${hw.cpu.cores} cores` : ''}`) : dim('reading…')}`,
-    `${label('GRAPHICS')}${hw ? (hw.gpus.length ? `${fit(clean(hw.gpus.join(', ')))} ${dim('· not used')}` : dim('none found')) : dim('reading…')}`,
+    `${label('GRAPHICS')}${hw ? (hw.gpus.length ? `${fit(clean(hw.gpus.join(', ')))} ${dim('· hashes in the app, not here')}` : dim('none found')) : dim('reading…')}`,
     `${label('TEMP')}${temp}${s.sensors?.gpuTemp ? `  ${dim('GPU')} ${s.sensors.gpuTemp}°C` : ''}`,
     `${label('MEMORY')}${hw && s.sensors ? `${gb(hw.ramTotal - s.sensors.ramFree)} used of ${gb(hw.ramTotal)}` : dim('reading…')}`,
     `${label('STORAGE')}${hw?.disk ? `${gb(hw.disk.free)} free of ${gb(hw.disk.total)}` : dim('unknown')}`,

@@ -38,6 +38,7 @@ const DEFAULTS = {
   },
   embeddings: { provider: 'auto', model: '', baseUrl: '', voyageKey: '' },
   transcription: { provider: 'auto', baseUrl: '', key: '', model: '', command: '', language: '' },
+  mining: { pool: '', threads: 0, gpu: 'auto' },
   channels: {
     telegram: { enabled: false, token: '', allow: [] },
     discord: { enabled: false, token: '', allow: [] },

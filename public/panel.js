@@ -1,5 +1,7 @@
 // The control panel: everything the gateway can do, in one window. Talks only to /api on the
 // same origin with the private token. Desktop app, phone web app and the dashboard all load this.
+import { GpuMiner, detectGpu } from '/gpu-miner.js';
+
 const root = document.getElementById('app');
 
 /* DOM helpers */
@@ -175,7 +177,7 @@ const ui = {
 };
 const VIEWS = [
   ['chat', 'Chat', '◌'], ['approvals', 'Approvals', '✓'], ['channels', 'Channels', '✉'],
-  ['schedules', 'Schedules', '◷'], ['memory', 'Memory', '◈'], ['skills', 'Skills', '⌘'], ['settings', 'Settings', '⚙'],
+  ['schedules', 'Schedules', '◷'], ['memory', 'Memory', '◈'], ['skills', 'Skills', '⌘'], ['miner', 'Miner', '◉'], ['settings', 'Settings', '⚙'],
 ];
 
 async function refresh(parts = ['sidebar', 'view']) {
@@ -242,6 +244,146 @@ function setConnection(value) {
     statusDot.lastChild.textContent = { connected: 'Live', connecting: 'Connecting', reconnecting: 'Retrying' }[value];
   }
   if (value === 'connected' && was === 'reconnecting') refresh();
+}
+
+/* Miner: CPU threads run in the gateway, the GPU runs in this tab through WebGPU. */
+const mine = { state: null, gpu: null, gpuInfo: undefined, wantGpu: (() => { try { return localStorage.getItem('nocturn-gpu') !== 'off'; } catch { return true; } })(), els: {} };
+
+async function gpuAvailable() {
+  if (mine.gpuInfo === undefined) mine.gpuInfo = await detectGpu().catch(() => null);
+  return mine.gpuInfo;
+}
+
+async function startGpu() {
+  if (mine.gpu || !mine.wantGpu) return;
+  const info = await gpuAvailable();
+  if (!info) return;
+  const engine = new GpuMiner({
+    onShares: (shares) => api('mine/shares', 'POST', { shares }).catch(() => {}),
+    onRate: (hashrate, name) => api('mine/gpu', 'POST', { hashrate, active: true, name }).catch(() => {}),
+    onError: (err) => { toast(`GPU: ${err.message}`, 'bad'); stopGpu(); },
+  });
+  mine.gpu = engine;
+  try {
+    const name = await engine.start();
+    if (mine.state?.job) engine.setJob({ seed: mine.state.job.seed, name: mine.state.name, difficulty: mine.state.job.difficulty });
+    toast(`GPU hashing on ${name}`, 'good');
+  } catch (err) {
+    mine.gpu = null;
+    toast(`GPU: ${err.message}`, 'bad');
+  }
+}
+
+function stopGpu() {
+  mine.gpu?.stop();
+  mine.gpu = null;
+  api('mine/gpu', 'POST', { hashrate: 0, active: false }).catch(() => {});
+}
+
+const rate = (perSecond) => (perSecond >= 1e9 ? `${(perSecond / 1e9).toFixed(2)} GH/s` : perSecond >= 1e6 ? `${(perSecond / 1e6).toFixed(2)} MH/s` : perSecond >= 1e3 ? `${(perSecond / 1e3).toFixed(1)} kH/s` : `${Math.round(perSecond)} H/s`);
+const money = (cents) => (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const clock = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+
+function paintMiner() {
+  const s = mine.state;
+  const e = mine.els;
+  if (!s || !e.cpu) return;
+  const gpuRate = mine.gpu ? s.gpuHashrate : 0;
+  e.cpu.textContent = rate(s.hashrate);
+  e.gpu.textContent = mine.gpu ? rate(gpuRate) : (s.gpu && s.gpu !== 'off' && s.gpu !== 'waiting' ? `${rate(s.gpuHashrate)} · other tab` : 'off');
+  e.total.textContent = rate(s.hashrate + (mine.gpu ? gpuRate : s.gpuHashrate));
+  e.shares.textContent = `${s.shares + s.gpuShares}`;
+  e.status.textContent = s.status;
+  e.status.className = `status ${s.status === 'hashing' ? 'ok' : s.status === 'error' ? 'bad' : ''}`;
+  if (s.job) {
+    e.balance.textContent = `${money(s.job.cents)} NOCT`;
+    e.session.textContent = s.startCents === null ? '' : `+${money(s.job.cents - s.startCents)} this session`;
+    e.difficulty.textContent = `${s.job.difficulty} bits`;
+    e.round.textContent = `${clock(s.job.left)} left · ${s.job.miners} miners`;
+    e.roundBar.style.width = `${Math.max(0, Math.min(100, 100 - (s.job.left / s.job.roundMs) * 100))}%`;
+    const est = s.job.roundWork ? Math.floor(s.job.rewardCents * s.job.yourWork / s.job.roundWork) : 0;
+    e.estimate.textContent = `≈ +${money(est)} NOCT this round`;
+  }
+  e.threads.textContent = `${s.active} of ${s.threads} threads${s.tuneNote ? ` · ${s.tuneNote}` : ''}`;
+  e.temp.textContent = s.sensors?.cpu ? `${Math.round(s.sensors.cpu.celsius)}°C` : '—';
+}
+
+listeners.add((e) => {
+  if (e.type === 'mine') { mine.state = e; paintMiner(); }
+  else if (e.type === 'mine_job') { mine.gpu?.setJob({ seed: e.seed, name: e.name, difficulty: e.difficulty }); }
+  else if (e.type === 'mine_question') { if (ui.view === 'miner') renderMain(); else toast('The miner needs you to answer its check', 'info'); }
+});
+
+function viewMiner() {
+  const d = ui.data;
+  const s = mine.state ?? d.mining;
+  mine.state = s;
+  const cfg = d.config.mining ?? {};
+  const error = h('p', { class: 'error-text' });
+
+  if (!d.mining?.account) {
+    const pool = h('input', { type: 'text', value: cfg.pool || '', placeholder: 'https://pool.example.com' });
+    const name = h('input', { type: 'text', maxLength: 20, placeholder: '3 to 20 letters, digits, - or _' });
+    const signUp = async () => {
+      error.textContent = '';
+      try {
+        await api('config', 'PUT', { mining: { pool: pool.value.trim() } });
+        await api('mine/register', 'POST', { name: name.value.trim(), pool: pool.value.trim() });
+        ui.data = await api('state');
+        toast('Miner account created', 'good');
+        renderMain();
+      } catch (err) { error.textContent = err.message; }
+    };
+    return page('Miner', 'Hash SHA-256 for the pool with your CPU threads here in the gateway and your GPU in this window. Balances are NOCT, a pool score, not a coin.',
+      h('div', { class: 'card' },
+        h('label', { class: 'field' }, h('span', {}, 'Pool address'), pool, h('small', {}, 'The https address of the pool you mine for. Set by the person who runs it.')),
+        h('label', { class: 'field' }, h('span', {}, 'Miner name'), name),
+        h('div', { class: 'actions' }, h('button', { class: 'btn primary', onclick: signUp }, 'Create account')), error));
+  }
+
+  const running = ['connecting', 'hashing', 'waiting for the check', 'reconnecting'].includes(s.status);
+  const stat = (label, key, sub) => { mine.els[key] = h('b', {}, '—'); if (sub) mine.els[sub] = h('small', {}, ''); return h('div', { class: 'mine-stat' }, h('span', {}, label), mine.els[key], sub ? mine.els[sub] : null); };
+  mine.els.status = h('span', { class: 'status' }, s.status);
+  mine.els.roundBar = h('i');
+  const threads = h('input', { type: 'range', min: 0, max: s.maxThreads ?? 8, value: cfg.threads || Math.max(1, (s.maxThreads ?? 2) - 1) });
+  const threadsLabel = h('span', { class: 'muted' }, `${threads.value} CPU threads`);
+  threads.addEventListener('input', () => { threadsLabel.textContent = `${threads.value} CPU threads`; });
+  const gpuToggle = h('input', { type: 'checkbox', checked: mine.wantGpu });
+  const gpuNote = h('small', { class: 'muted' }, 'checking for a GPU…');
+  gpuAvailable().then((info) => { gpuNote.textContent = info ? `${info.name} · WebGPU` : 'No WebGPU GPU in this browser. CPU only.'; if (!info) { gpuToggle.checked = false; gpuToggle.disabled = true; } });
+  gpuToggle.addEventListener('change', () => { mine.wantGpu = gpuToggle.checked; try { localStorage.setItem('nocturn-gpu', gpuToggle.checked ? 'on' : 'off'); } catch { /* ignore */ } if (running) { if (gpuToggle.checked) startGpu(); else stopGpu(); } });
+  const start = async () => {
+    error.textContent = '';
+    try {
+      ui.data = await api('config', 'PUT', { mining: { threads: Number(threads.value) } });
+      mine.state = await api('mine/start', 'POST', { threads: Number(threads.value), gpu: gpuToggle.checked });
+      if (gpuToggle.checked) await startGpu();
+      renderMain();
+    } catch (err) { error.textContent = err.message; }
+  };
+  const stop = async () => { stopGpu(); try { mine.state = await api('mine/stop', 'POST', {}); } catch (err) { report(err); } renderMain(); };
+  const answer = h('input', { type: 'text', inputmode: 'numeric', placeholder: 'your answer' });
+  const check = s.question ? h('div', { class: 'card mine-check' },
+    h('b', {}, 'Anti-bot check, hashing is paused'),
+    h('p', {}, `What is ${s.question}?`),
+    h('div', { class: 'row' }, answer, h('button', { class: 'btn small primary', onclick: async () => { try { const r = await api('mine/answer', 'POST', { answer: answer.value }); if (!r.ok) { toast('Wrong answer, try again', 'bad'); answer.value = ''; } else renderMain(); } catch (err) { report(err); } } }, 'Answer'))) : null;
+  const view = page('Miner', `Mining for ${d.mining.account.name} at ${d.mining.account.pool}. CPU threads hash in the gateway; the GPU hashes in this window while it stays open.`,
+    check,
+    h('div', { class: 'card' },
+      h('div', { class: 'row wrap' }, mine.els.status, h('span', { class: 'muted' }, mine.els.threads = h('span', {}, '')), h('span', { class: 'muted' }, 'CPU ', mine.els.temp = h('span', {}, '—')),
+        h('div', { class: 'actions tight' }, running ? h('button', { class: 'btn small danger', onclick: stop }, 'Stop') : h('button', { class: 'btn small primary', onclick: start }, 'Start mining'))),
+      h('div', { class: 'mine-stats' }, stat('CPU', 'cpu'), stat('GPU', 'gpu'), stat('Total', 'total'), stat('Shares', 'shares')),
+      h('div', { class: 'mine-round' }, h('div', { class: 'row wrap' }, h('span', {}, 'Round ', mine.els.round = h('b', {}, '—')), h('span', { class: 'muted' }, 'Difficulty ', mine.els.difficulty = h('b', {}, '—'))), h('div', { class: 'mine-bar' }, mine.els.roundBar)),
+      h('div', { class: 'row wrap' }, h('span', {}, 'Balance ', mine.els.balance = h('b', {}, '—')), mine.els.session = h('span', { class: 'muted' }, ''), mine.els.estimate = h('span', { class: 'muted' }, ''))),
+    h('div', { class: 'section-title' }, 'How much to use'),
+    h('div', { class: 'card' },
+      h('label', { class: 'field' }, h('span', {}, 'CPU threads'), threads, threadsLabel, h('small', {}, 'Auto-tune lowers this when the CPU runs hot or memory is short, and raises it again when it cools.')),
+      h('label', { class: 'switch' }, gpuToggle, h('span', {}, 'Use the GPU in this window'), gpuNote),
+      running && mine.wantGpu && !mine.gpu && mine.gpuInfo ? h('div', { class: 'actions' }, h('button', { class: 'btn small', onclick: startGpu }, 'Use this GPU')) : null,
+      h('p', { class: 'muted small-text' }, 'The GPU path uses WebGPU: no driver SDK, any card the browser supports. Hashing stops when this window closes; the CPU threads keep going in the gateway. Many hosting providers forbid mining; read their terms first.')),
+    error);
+  setTimeout(paintMiner, 0);
+  return view;
 }
 
 listeners.add((e) => {
@@ -328,7 +470,7 @@ function goTo(view) {
 }
 
 function renderMain() {
-  const views = { chat: chat.render, approvals: viewApprovals, channels: viewChannels, schedules: viewSchedules, memory: viewMemory, skills: viewSkills, settings: viewSettings };
+  const views = { chat: chat.render, approvals: viewApprovals, channels: viewChannels, schedules: viewSchedules, memory: viewMemory, skills: viewSkills, miner: viewMiner, settings: viewSettings };
   mainEl.replaceChildren(views[ui.view]());
   paintBadges();
 }

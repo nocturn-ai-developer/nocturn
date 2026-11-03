@@ -7,6 +7,7 @@ import { sessions, validSessionId } from './agent.mjs';
 import { memory, searchIndex, skills, toolNames } from './tools.mjs';
 import { embedder, snippet } from './embeddings.mjs';
 import { transcriber } from './transcribe.mjs';
+import { miner } from './mine-core.mjs';
 import { partners } from './partners.mjs';
 import { checkWalletProof } from './wallet-proof.mjs';
 
@@ -81,10 +82,14 @@ function str(value, name, max = 100000) {
 
 export function startServer({ agent, channels, scheduler, port, host = '127.0.0.1' }) {
   const clients = new Set();
-  agent.on('event', (event) => {
+  const broadcast = (event) => {
     const line = `data: ${JSON.stringify(event)}\n\n`;
     for (const client of clients) client.write(line);
-  });
+  };
+  agent.on('event', broadcast);
+  miner.on('state', (snapshot) => broadcast({ type: 'mine', ...snapshot }));
+  miner.on('question', ({ question }) => broadcast({ type: 'mine_question', question }));
+  miner.on('job', (job) => broadcast({ type: 'mine_job', ...job }));
 
   const state = () => ({
     config: redactedConfig(),
@@ -99,6 +104,7 @@ export function startServer({ agent, channels, scheduler, port, host = '127.0.0.
     memory: memory.list(),
     search: { ...embedder.status, entries: searchIndex.size, updated: searchIndex.index.updated ?? null },
     voice: transcriber.status,
+    mining: (() => { const a = miner.account(); return { ...miner.snapshot(), account: a && { name: a.name, pool: a.pool }, configured: Boolean(config.mining?.pool || process.env.NOCTURN_POOL || a) }; })(),
     credentials: {
       anthropic: Boolean(config.anthropicKey || process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN),
       openai: Boolean(config.openaiModel),
@@ -140,6 +146,20 @@ export function startServer({ agent, channels, scheduler, port, host = '127.0.0.
       const { audio, name, mime } = await readBody(req);
       const bytes = Buffer.from(str(audio, 'audio', 40 * 1024 * 1024), 'base64');
       try { return send(res, 200, { text: await transcriber.transcribe(bytes, typeof name === 'string' ? name : 'voice.ogg', typeof mime === 'string' ? mime : 'audio/ogg'), ...transcriber.status }); } catch (err) { throw new HttpError(502, err.message); }
+    }
+    // The miner, driven from the panel: account, start/stop, the check, shares from the GPU.
+    if (resource === 'mine') {
+      try {
+        if (!id && method === 'GET') return send(res, 200, miner.snapshot());
+        if (id === 'register' && method === 'POST') { const { name, pool } = await readBody(req); return send(res, 200, await miner.register(str(name, 'name', 20), typeof pool === 'string' ? pool : '')); }
+        if (id === 'start' && method === 'POST') { const { threads, pool, gpu } = await readBody(req); return send(res, 200, await miner.start({ threads: threads === undefined ? (config.mining?.threads || undefined) : threads, pool: typeof pool === 'string' ? pool : '', gpu: gpu !== false })); }
+        if (id === 'stop' && method === 'POST') { await miner.stop(); return send(res, 200, miner.snapshot()); }
+        if (id === 'answer' && method === 'POST') { const { answer } = await readBody(req); return send(res, 200, { ok: await miner.answer(str(answer, 'answer', 20)), ...miner.snapshot() }); }
+        if (id === 'shares' && method === 'POST') { const { shares } = await readBody(req); return send(res, 200, { accepted: await miner.addShares(Array.isArray(shares) ? shares : []) }); }
+        if (id === 'gpu' && method === 'POST') { miner.reportGpu(await readBody(req)); return send(res, 200, { ok: true }); }
+      } catch (err) {
+        throw new HttpError(err.code === 'name_taken' ? 409 : err.code === 'bad_name' ? 400 : 400, err.code === 'name_taken' ? 'That name is taken.' : err.code === 'bad_name' ? 'Use 3 to 20 letters, numbers, - or _.' : err.message);
+      }
     }
     if (resource === 'index' && method === 'POST') {
       if (id === 'rebuild') embedder.reset();

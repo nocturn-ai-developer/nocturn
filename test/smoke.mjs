@@ -328,6 +328,49 @@ await check('approval risk: rules flag destructive calls, the model learns the o
   assert.ok(existsSync(join(home, 'decisions.jsonl')));
 });
 
+await check('the miner service mines a local pool with CPU threads and accepts GPU-found shares', async () => {
+  const { miner } = await import('../src/mine-core.mjs');
+  const pool = await startPool({ port: 0, file: join(home, 'pool-svc.json'), roundMs: 3600000, rewardCents: 10000, startDifficulty: 8 });
+  const poolUrl = `http://127.0.0.1:${pool.port}`;
+  // No account yet: the state says so, start refuses.
+  assert.equal((await (await call('mine/start', 'POST', { pool: poolUrl })).status), 400);
+  const reg = await (await call('mine/register', 'POST', { name: 'panel-miner', pool: poolUrl })).json();
+  assert.equal(reg.name, 'panel-miner');
+  assert.equal((await (await call('mine/register', 'POST', { name: 'panel-miner', pool: poolUrl })).status), 409);
+  // GPU-only session first (no CPU threads), so the difficulty stays where the pool started it.
+  const question = new Promise((resolve) => miner.once('question', resolve));
+  const started = await (await call('mine/start', 'POST', { threads: 0, pool: poolUrl, gpu: true })).json();
+  assert.equal(started.name, 'panel-miner');
+  const { question: q } = await question;
+  assert.match(q, /^\d+ \+ \d+$/);
+  assert.equal((await (await call('mine/answer', 'POST', { answer: '1' })).json()).ok, false, 'a wrong answer is reported, not fatal');
+  const [a, b] = miner.state.question.split(' + ').map(Number);
+  assert.equal((await (await call('mine/answer', 'POST', { answer: String(a + b) })).json()).ok, true);
+  assert.equal(miner.state.status, 'hashing');
+  // A GPU-style share: found elsewhere, submitted through the API, counted separately.
+  const { seed, difficulty } = miner.state.job;
+  let nonce = 'gpu';
+  for (let i = 0; ; i++) { if (leadingZeroBits(shareHash(seed, 'panel-miner', `gpu${i}`)) >= difficulty) { nonce = `gpu${i}`; break; } }
+  const res = await (await call('mine/shares', 'POST', { shares: [{ seed, nonce }, { seed, nonce: 'bad' }, { seed: 'stale', nonce }] })).json();
+  assert.equal(res.accepted, 1);
+  assert.equal(miner.state.gpuShares, 1);
+  await call('mine/gpu', 'POST', { hashrate: 123456, active: true, name: 'Test GPU' });
+  const snap = (await (await call('mine')).json());
+  assert.equal(snap.gpuHashrate, 123456);
+  assert.equal(snap.gpu, 'Test GPU');
+  assert.ok((await (await call('state')).json()).mining.account.name === 'panel-miner');
+  await call('mine/stop', 'POST', {});
+  assert.equal(miner.state.status, 'stopped');
+  // Now a CPU thread: the check was passed moments ago, so shares arrive on their own.
+  await call('mine/start', 'POST', { threads: 1, pool: poolUrl, gpu: false });
+  const deadline = Date.now() + 20000;
+  while (miner.state.shares < 1 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 200));
+  assert.ok(miner.state.shares >= 1, 'the CPU worker found a share');
+  await call('mine/stop', 'POST', {});
+  await new Promise((r) => setTimeout(r, 300)); // let the last in-flight share settle before the pool goes away
+  pool.close();
+});
+
 await check('cron expressions match correctly', async () => {
   const mondayEight = new Date(2026, 10, 2, 8, 0);
   assert.ok(cronMatches('0 8 * * 1-5', mondayEight));

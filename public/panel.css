@@ -203,3 +203,18 @@ code.cron { display: inline-block; margin: 4px 0 6px 10px; padding: 2px 8px; }
 @media (prefers-reduced-motion: reduce) {
   .conn i, .tool-state.run, .thinking i { animation: none; }
 }
+
+/* Miner */
+.mine-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.mine-stat { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.mine-stat span { color: var(--muted); font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.mine-stat b { font: 500 22px var(--mono); letter-spacing: -.02em; }
+.mine-stat small { color: var(--faint); font-size: 11.5px; }
+.mine-round { margin: 6px 0 14px; }
+.mine-bar { height: 4px; margin-top: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.mine-bar i { display: block; width: 0; height: 100%; background: var(--text); transition: width .6s var(--spring); }
+.mine-check { border-color: var(--accent); }
+.mine-check p { margin: 6px 0 12px; font-size: 18px; }
+.mine-check input { max-width: 160px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--bg); color: var(--text); font: 15px var(--mono); }
+input[type=range] { width: 100%; accent-color: var(--text); }
+@media (max-width: 760px) { .mine-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
