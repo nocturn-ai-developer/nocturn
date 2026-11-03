@@ -1,6 +1,6 @@
 {
   "name": "nocturn-mobile",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Nocturn for Android: a client for the gateway you run on your computer or server",
   "scripts": {

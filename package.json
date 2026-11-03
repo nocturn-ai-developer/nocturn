@@ -1,6 +1,6 @@
 {
   "name": "@morpheapp/nocturn",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Self-hosted personal AI agent: a gateway and CLI for your terminal or server, with chat channels",
   "type": "module",
   "main": "desktop/main.mjs",
@@ -49,9 +49,9 @@
   "nocturn": {
     "pool": "",
     "downloads": {
-      "windows": "https://nocturnh.com/download/Nocturn-Setup-0.2.1.exe",
-      "mac": "https://nocturnh.com/download/Nocturn-0.2.1.dmg",
-      "android": "https://nocturnh.com/download/Nocturn-0.2.1.apk"
+      "windows": "https://nocturnh.com/download/Nocturn-Setup-0.2.2.exe",
+      "mac": "https://nocturnh.com/download/Nocturn-0.2.2.dmg",
+      "android": "https://nocturnh.com/download/Nocturn-0.2.2.apk"
     },
     "analyticsToken": ""
   },
