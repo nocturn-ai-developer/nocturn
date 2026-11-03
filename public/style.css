@@ -442,7 +442,7 @@ h1, h2, h3 { margin: 0; font-weight: 500; letter-spacing: -.03em; }
 .token-fine { margin: 14px 0 0; color: var(--faint); font-size: 12px; line-height: 1.55; }
 
 /* Closing */
-.closing { position: relative; margin-top: 120px; padding: clamp(60px, 8vw, 100px) 24px 0; overflow: hidden; border-bottom: 0; border-radius: 22px 22px 0 0; text-align: center; container-type: inline-size; }
+.closing { position: relative; margin-top: 120px; padding: clamp(60px, 8vw, 100px) 24px; overflow: hidden; border-radius: 22px; text-align: center; container-type: inline-size; }
 .closing-copy { position: relative; display: flex; flex-direction: column; align-items: center; }
 .closing-copy .pill { margin-bottom: 14px; }
 .closing-copy p { margin: 12px 0 24px; color: var(--soft); }
@@ -546,7 +546,7 @@ input:focus { border-color: var(--text); outline: none; }
   @media (prefers-reduced-motion: no-preference) {
     .reveal { opacity: 1; transform: none; transition: none; }
     .section-head > *, .section-head::before, .term, .demo, .bento > .tile, .why-copy > *, .cube-scene, .why-cell, .night-pin, .light-art, .light-copy > *, .light-fact,
-    .token-copy > *, .token-art, .token-row, .marquee, .closing, .closing-copy > *, .wordmark, .site-foot, .demo-bar, .demo-grid > *, .demo-tabs,
+    .token-copy > *, .token-art, .token-row, .marquee, .closing, .closing-copy > *, .site-foot, .demo-bar, .demo-grid > *, .demo-tabs,
     .pair-msg, .pair-cmd, .pair-ok, .cron-line, .week span, .stat, .rule {
       animation: morph-in linear both;
       animation-timeline: view();
@@ -554,6 +554,8 @@ input:focus { border-color: var(--text); outline: none; }
     }
     .why-cell:nth-child(3n + 2), .bento > .tile:nth-child(even), .week span:nth-child(even), .light-fact:nth-child(2), .demo-grid > :nth-child(2) { animation-range: entry 8% cover 32%; }
     .why-cell:nth-child(3n), .light-fact:nth-child(3), .demo-grid > :nth-child(3) { animation-range: entry 16% cover 36%; }
+    /* The last blocks sit near the end of the page, where "cover" can never be reached: finish them once they are fully in view. */
+    .closing, .closing-copy > *, .site-foot { animation-range: entry 0% entry 100%; }
     .night-moon { animation: moon-away linear both; animation-timeline: --home; animation-range: 0 100vh; }
   }
 }
