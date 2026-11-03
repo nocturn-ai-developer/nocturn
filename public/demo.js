@@ -730,7 +730,7 @@ function buildFooter(admin) {
         el('div', 'foot-install', el('code', '', el('span', '', '$ '), command), copy),
         el('div', 'foot-chips', el('span', '', el('i'), 'Open source'), el('span', '', el('i'), 'Asks before it acts'), el('span', '', el('i'), 'Runs where you run it'))),
       column('Product', link('Download', '/#download'), link('Documentation', '/docs'), link('Control panel', '/docs#apps'), link('Mining', '/docs#mining')),
-      column('Source', link('GitHub', 'https://github.com/sultonfaza/nocturn', true), link('npm package', 'https://www.npmjs.com/package/@morpheapp/nocturn', true), link('Releases', 'https://github.com/sultonfaza/nocturn/releases', true), link('Report an issue', 'https://github.com/sultonfaza/nocturn/issues', true)),
+      column('Source', link('GitHub', 'https://github.com/nocturn-ai-developer/nocturn', true), link('npm package', 'https://www.npmjs.com/package/@morpheapp/nocturn', true), link('Releases', 'https://github.com/nocturn-ai-developer/nocturn/releases', true), link('Report an issue', 'https://github.com/nocturn-ai-developer/nocturn/issues', true)),
       column('Token', link('$NCTRN', '/#token'), link('Robinhood Chain', CHAIN.blockExplorerUrls[0], true), x, el('small', 'foot-note', 'The contract address is published only on this site. Not financial advice.'))),
     el('div', 'foot-word', 'NOCTURN'),
     el('div', 'foot-bar',

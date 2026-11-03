@@ -8,8 +8,8 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@morpheapp/nocturn"><img alt="npm" src="https://img.shields.io/npm/v/@morpheapp/nocturn?style=flat-square&color=8b3dff&label=npm"></a>
-  <a href="https://github.com/sultonfaza/nocturn/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/sultonfaza/nocturn?style=flat-square&color=e05bd0&label=release"></a>
-  <a href="https://github.com/sultonfaza/nocturn/actions/workflows/apps.yml"><img alt="Apps build" src="https://img.shields.io/github/actions/workflow/status/sultonfaza/nocturn/apps.yml?style=flat-square&label=apps"></a>
+  <a href="https://github.com/nocturn-ai-developer/nocturn/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/nocturn-ai-developer/nocturn?style=flat-square&color=e05bd0&label=release"></a>
+  <a href="https://github.com/nocturn-ai-developer/nocturn/actions/workflows/apps.yml"><img alt="Apps build" src="https://img.shields.io/github/actions/workflow/status/nocturn-ai-developer/nocturn/apps.yml?style=flat-square&label=apps"></a>
   <img alt="Node 22+" src="https://img.shields.io/badge/node-%E2%89%A522-5aa0ff?style=flat-square">
   <img alt="Platforms" src="https://img.shields.io/badge/windows%20%7C%20macOS%20%7C%20linux%20%7C%20android-111113?style=flat-square">
   <img alt="Source available" src="https://img.shields.io/badge/license-source%20available-6b6b73?style=flat-square">
@@ -17,7 +17,7 @@
 
 <p align="center">
   <a href="https://nocturnh.com/#download"><img alt="Download the app" src="https://img.shields.io/badge/%E2%AC%87%20Download%20the%20app-nocturnh.com-111113?style=for-the-badge"></a>&nbsp;
-  <a href="https://github.com/sultonfaza/nocturn/releases/latest"><img alt="Latest release" src="https://img.shields.io/badge/%E2%AC%87%20Latest%20release-GitHub-8b3dff?style=for-the-badge"></a>&nbsp;
+  <a href="https://github.com/nocturn-ai-developer/nocturn/releases/latest"><img alt="Latest release" src="https://img.shields.io/badge/%E2%AC%87%20Latest%20release-GitHub-8b3dff?style=for-the-badge"></a>&nbsp;
   <a href="https://nocturnh.com/docs"><img alt="Documentation" src="https://img.shields.io/badge/%F0%9F%93%96%20Docs-nocturnh.com%2Fdocs-e05bd0?style=for-the-badge"></a>
 </p>
 
@@ -211,7 +211,7 @@ The full reference, with bodies and responses, is at [nocturnh.com/docs](https:/
 | **Android** `.apk` | A client (Capacitor, in [`mobile/`](mobile/)) for a gateway you run at home or on a server over a private network. The phone never runs the agent. |
 | **Web app** | Open `/panel.html` on your own gateway and choose *Install app*. Same panel, no download. |
 
-Downloads: **[nocturnh.com/#download](https://nocturnh.com/#download)** or the [latest GitHub release](https://github.com/sultonfaza/nocturn/releases/latest). Every installer is built from this repository by the [Apps workflow](.github/workflows/apps.yml) on a version tag.
+Downloads: **[nocturnh.com/#download](https://nocturnh.com/#download)** or the [latest GitHub release](https://github.com/nocturn-ai-developer/nocturn/releases/latest). Every installer is built from this repository by the [Apps workflow](.github/workflows/apps.yml) on a version tag.
 
 <img src=".github/assets/divider.svg" alt="" width="100%">
 
