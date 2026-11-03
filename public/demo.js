@@ -282,14 +282,36 @@ function heading(title, text, { badge = null } = {}) {
 const stats = {};
 
 // Numbers on the page come from this install, so they are true for whoever is looking.
-export function setStats({ memory, skills, config }) {
-  if (!stats.memory) return;
-  stats.memory.textContent = memory.length;
-  stats.skills.textContent = skills.length;
+// The gateway's real defaults, shown on the public site where there is no gateway to ask.
+const DEFAULT_POLICIES = {
+  read_file: 'auto', list_files: 'auto', memory_search: 'auto', search_workspace: 'auto', memory_save: 'auto', load_skill: 'auto',
+  write_file: 'ask', edit_file: 'ask', shell: 'ask', web_fetch: 'ask', browser: 'ask', schedule_task: 'ask', send_message: 'ask',
+};
+const EXAMPLE_MEMORIES = ['Prefers answers under three sentences', 'Gym Monday, Wednesday, Friday at 6:00 PM', 'Invoices go out on the first business day', 'Northwind Studio likes short emails'];
+const EXAMPLE_SKILLS = ['weekly-update', 'invoice-chaser'];
+
+function paintRules(policies) {
   for (const [policy, list] of Object.entries(stats.rules)) {
-    const tools = Object.keys(config.policies).filter((tool) => config.policies[tool] === policy);
-    list.replaceChildren(...(tools.length ? tools.map((tool) => el('span', 'rule-tool', tool)) : [el('span', 'rule-none', 'None')]));
+    const tools = Object.keys(policies).filter((tool) => policies[tool] === policy);
+    list.replaceChildren(...(tools.length ? tools.map((tool) => el('span', `rule-tool ${policy}`, tool)) : [el('span', 'rule-none', 'Nothing yet')]));
   }
+}
+
+function paintMemory(memories, skills, example) {
+  stats.memoryList.replaceChildren(...memories.slice(0, 4).map((m) => el('li', '', m)));
+  stats.memoryList.classList.toggle('hidden', !memories.length);
+  stats.skillList.replaceChildren(...skills.slice(0, 4).map((s) => el('span', 'skill-chip', s)));
+  stats.skillList.classList.toggle('hidden', !skills.length);
+  stats.memoryCount.textContent = `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'}`;
+  stats.skillCount.textContent = `${skills.length} ${skills.length === 1 ? 'skill' : 'skills'}`;
+  stats.memoryNote.textContent = example ? 'Example. Your own list lives on your gateway.' : 'Live from your gateway.';
+  stats.memoryEmpty.classList.toggle('hidden', memories.length > 0 || skills.length > 0);
+}
+
+export function setStats({ memory, skills, config }) {
+  if (!stats.memoryList) return;
+  paintMemory(memory.map((m) => m.text), skills.map((s) => s.name), false);
+  paintRules(config.policies);
 }
 
 function tile(art, title, text) {
@@ -305,22 +327,28 @@ function buildBento() {
     el('code', 'cron-line', '0 8 * * 1-5'),
     el('div', 'week', ...['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => el('span', i < 5 ? 'on' : '', day))),
     el('div', 'cron-note', 'Every weekday at 8:00 AM'));
-  stats.memory = el('b', '', '0');
-  stats.skills = el('b', '', '0');
-  const numbers = el('div', 'tile-art stats',
-    el('div', 'stat', stats.memory, el('small', '', 'Memories')),
-    el('div', 'stat', stats.skills, el('small', '', 'Skills')));
+  stats.memoryList = el('ul', 'memory-list');
+  stats.skillList = el('div', 'skill-list');
+  stats.memoryCount = el('b', '', '');
+  stats.skillCount = el('b', '', '');
+  stats.memoryNote = el('small', 'memory-note', '');
+  stats.memoryEmpty = el('p', 'memory-empty hidden', 'Nothing saved yet. Tell it something once, or let it save what it learns.');
+  const numbers = el('div', 'tile-art memory',
+    el('div', 'memory-head', el('span', 'memory-pill', '◈ ', stats.memoryCount), el('span', 'memory-pill', '⌘ ', stats.skillCount)),
+    stats.memoryList, stats.skillList, stats.memoryEmpty, stats.memoryNote);
   stats.rules = {};
-  const rule = (key, label) => {
+  const rule = (key, label, hint) => {
     stats.rules[key] = el('div', 'rule-list');
-    return el('div', 'rule', el('small', '', label), stats.rules[key]);
+    return el('div', `rule rule-${key}`, el('small', '', el('i'), label, el('span', 'rule-hint', hint)), stats.rules[key]);
   };
-  const rules = el('div', 'tile-art rules', rule('auto', 'Always allow'), rule('ask', 'Asks you'), rule('deny', 'Blocked'));
+  const rules = el('div', 'tile-art rules', rule('auto', 'Always allow', 'reads only'), rule('ask', 'Asks you', 'waits for yes'), rule('deny', 'Blocked', 'never runs'));
+  paintMemory(EXAMPLE_MEMORIES, EXAMPLE_SKILLS, true);
+  paintRules(DEFAULT_POLICIES);
   return el('div', 'bento',
     tile(pairing, 'Reach it from your chat apps', 'Connect Telegram, Discord or Slack to the gateway. New senders need a pairing code you approve.'),
     tile(week, 'Works on a schedule', 'Jobs run by themselves while your computer is on, and the result lands in your chat.'),
-    tile(numbers, 'Remembers how you like things', 'Memory carries across conversations. Skills hold the jobs you repeat. These are your numbers.'),
-    tile(rules, 'You set the rules', 'Your tools right now, by permission. It can edit files, run commands and drive a browser only as far as you allow.'));
+    tile(numbers, 'Remembers how you like things', 'Short facts it keeps across conversations, and skills for the jobs you repeat. On your own gateway this tile shows your real list.'),
+    tile(rules, 'You set the rules', 'Every tool has a permission. Reading is automatic; anything that changes files, runs commands, reaches the web or sends messages waits for your yes. These are the defaults.'));
 }
 
 async function copyText(button, text) {
