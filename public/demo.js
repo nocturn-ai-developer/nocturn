@@ -704,6 +704,41 @@ export function setTrusted(list) {
   renderTrusted();
 }
 
+/* Footer: the night ends here */
+function buildFooter(admin) {
+  const link = (text, href, external = false) => {
+    const a = el('a', 'foot-item', text);
+    a.href = href;
+    if (external) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    return a;
+  };
+  const column = (title, ...items) => el('div', 'foot-col', el('span', 'foot-title', title), ...items);
+  const x = xLink('foot-item');
+  const command = isWindows ? 'npm.cmd install -g @morpheapp/nocturn' : 'npm install -g @morpheapp/nocturn';
+  const copy = el('button', 'btn small primary', 'Copy');
+  copy.addEventListener('click', () => copyText(copy, command));
+  const top = el('button', 'foot-top', el('span', '', '↑'), 'Back to top');
+  top.addEventListener('click', () => document.getElementById('top')?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' }));
+  const year = new Date().getFullYear();
+  const footer = el('footer', 'site-foot',
+    el('div', 'foot-glow'),
+    el('div', 'foot-grid',
+      el('div', 'foot-brand',
+        el('span', 'brand-mark foot-mark'),
+        el('b', '', 'NOCTURN'),
+        el('p', '', 'A self-hosted AI agent for your computer or server. It asks before it acts, and keeps working while you sleep.'),
+        el('div', 'foot-install', el('code', '', el('span', '', '$ '), command), copy),
+        el('div', 'foot-chips', el('span', '', el('i'), 'Open source'), el('span', '', el('i'), 'Asks before it acts'), el('span', '', el('i'), 'Runs where you run it'))),
+      column('Product', link('Download', '/#download'), link('Documentation', '/docs'), link('Control panel', '/docs#apps'), link('Mining', '/docs#mining')),
+      column('Source', link('GitHub', 'https://github.com/sultonfaza/nocturn', true), link('npm package', 'https://www.npmjs.com/package/@morpheapp/nocturn', true), link('Releases', 'https://github.com/sultonfaza/nocturn/releases', true), link('Report an issue', 'https://github.com/sultonfaza/nocturn/issues', true)),
+      column('Token', link('$NCTRN', '/#token'), link('Robinhood Chain', CHAIN.blockExplorerUrls[0], true), x, el('small', 'foot-note', 'The contract address is published only on this site. Not financial advice.'))),
+    el('div', 'foot-word', 'NOCTURN'),
+    el('div', 'foot-bar',
+      el('span', '', `© ${year} Nocturn · nocturnh.com`),
+      el('span', 'foot-bar-links', link('Docs', '/docs'), link('Download', '/#download'), admin, top)));
+  return footer;
+}
+
 // One instance for the whole visit, so a page refresh does not restart the demo.
 export function landing(actions) {
   if (page) return page;
@@ -717,8 +752,7 @@ export function landing(actions) {
   const install = el('div', 'closing reveal',
     el('div', 'closing-copy', pixelFlower(), el('span', 'pill', 'Get started'),
       el('h2', '', 'Install it once. Sleep on it.'),
-      el('p', '', 'Needs Node 22 or newer, plus a Claude or OpenAI-compatible model key.'), buildInstall()),
-    el('p', 'wordmark', 'nocturn'));
+      el('p', '', 'Needs Node 22 or newer, plus a Claude or OpenAI-compatible model key.'), buildInstall()));
   let admin = null;
   if (actions.onAdmin) {
     admin = el('button', 'foot-link', 'Edit Trusted by');
@@ -739,7 +773,7 @@ export function landing(actions) {
       marquee(IDEAS.slice(0, half), false), marquee(IDEAS.slice(half), true)),
     buildToken(),
     install,
-    el('footer', 'site-foot', el('span', '', '© Nocturn · nocturnh.com'), xLink('foot-link'), (() => { const a = el('a', 'foot-link', 'Docs'); a.href = '/docs'; return a; })(), admin));
+    buildFooter(admin));
 
   const revealer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
