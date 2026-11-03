@@ -91,7 +91,7 @@ function themeButton() {
 
 // A plain link to the documentation, styled like the menu button.
 function docsLink() {
-  const a = h('a', { class: 'nav-menu', href: '/docs.html' }, 'Docs');
+  const a = h('a', { class: 'nav-menu', href: '/docs' }, 'Docs');
   a.style.textDecoration = 'none';
   return a;
 }
@@ -114,7 +114,7 @@ function renderShell() {
   mainEl = h('main', { class: 'main' });
   const sheet = h('nav', { class: 'nav-sheet', 'aria-label': 'Sections' },
     SECTIONS.map(([id, label], i) => h('button', { onclick: () => { setMenu(false); jump(id); } }, h('span', {}, String(i + 1).padStart(2, '0')), label)),
-    h('button', { onclick: () => { location.href = '/docs.html'; } }, h('span', {}, '→'), 'Docs'));
+    h('button', { onclick: () => { location.href = '/docs'; } }, h('span', {}, '→'), 'Docs'));
   const menuBtn = h('button', { class: 'nav-menu', 'aria-expanded': 'false', onclick: () => setMenu(!bar.classList.contains('open')) }, h('span', { class: 'lines', 'aria-hidden': 'true' }, h('i'), h('i')), 'Menu');
   const bar = h('header', { class: 'topbar' },
     h('div', { class: 'topbar-start' }, h('button', { class: 'brand', onclick: () => jump('top') }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }), 'NOCTURN'), menuBtn, docsLink()),

@@ -315,7 +315,7 @@ function renderSidebar() {
     h('div', { class: 'side-sessions' },
       h('div', { class: 'side-row' }, h('span', { class: 'side-label' }, 'Conversations'), h('button', { class: 'btn small primary', onclick: newChat }, '+ New')),
       sessions.length ? h('div', { class: 'session-list' }, sessions) : h('div', { class: 'side-empty' }, 'No conversations yet.')),
-    h('div', { class: 'side-foot' }, h('a', { href: '/docs.html', class: 'foot-link' }, 'Docs'), h('a', { href: '/', class: 'foot-link' }, 'Home'), h('button', { class: 'foot-link', onclick: () => { if (confirm('Forget the token on this device?')) signOut(); } }, 'Sign out')));
+    h('div', { class: 'side-foot' }, h('a', { href: '/docs', class: 'foot-link' }, 'Docs'), h('a', { href: '/', class: 'foot-link' }, 'Home'), h('button', { class: 'foot-link', onclick: () => { if (confirm('Forget the token on this device?')) signOut(); } }, 'Sign out')));
   paintBadges();
 }
 

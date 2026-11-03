@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Nocturn · Admin</title>
+  <link rel="icon" href="/icon.png" type="image/png">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body>
+  <main class="admin">
+    <header class="admin-head">
+      <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>NOCTURN</a>
+      <span class="admin-tag">Admin</span>
+    </header>
+
+    <section id="login" class="admin-card">
+      <h1>Site settings</h1>
+      <p class="lede">Sign in to publish the token contract and the official X account on nocturnh.com.</p>
+      <form id="login-form" autocomplete="off">
+        <label class="field"><span>Admin password</span><input id="password" type="password" autocomplete="current-password" required></label>
+        <p class="error-text" id="login-error" role="alert"></p>
+        <div class="actions"><button class="btn primary" type="submit">Sign in</button></div>
+      </form>
+    </section>
+
+    <section id="editor" class="admin-card hidden">
+      <div class="admin-row">
+        <h1>Site settings</h1>
+        <button class="btn small" id="signout" type="button">Sign out</button>
+      </div>
+      <p class="lede">What you save here goes live within a minute on the home page: the Token section, the X link in the header and footer, and the social tags.</p>
+      <form id="site-form" autocomplete="off">
+        <label class="field">
+          <span>Token contract address</span>
+          <input id="contract" type="text" class="mono" placeholder="0x…" maxlength="42" spellcheck="false">
+          <small>Robinhood Chain, chain ID 4663. Leave empty to show "Not deployed yet".</small>
+        </label>
+        <label class="field">
+          <span>Official X account</span>
+          <input id="twitter" type="text" placeholder="@nocturn" maxlength="60" spellcheck="false">
+          <small>Handle or profile link. Leave empty to hide the X links.</small>
+        </label>
+        <p class="error-text" id="site-error" role="alert"></p>
+        <div class="actions">
+          <button class="btn primary" type="submit" id="save">Publish</button>
+          <span class="admin-status" id="status"></span>
+        </div>
+      </form>
+      <div class="admin-preview">
+        <div class="section-title">Live now</div>
+        <dl>
+          <dt>Contract</dt><dd id="live-contract" class="mono">—</dd>
+          <dt>X</dt><dd id="live-twitter">—</dd>
+          <dt>Updated</dt><dd id="live-updated">—</dd>
+        </dl>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/admin.js"></script>
+</body>
+</html>

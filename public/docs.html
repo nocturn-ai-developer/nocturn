@@ -8,7 +8,13 @@
   <meta name="description" content="Everything about Nocturn: what nocturnh.com is, how the gateway works, every CLI command, chat channels, tools and permissions, the HTTP API, mining, configuration, and troubleshooting.">
   <meta property="og:title" content="Nocturn Docs">
   <meta property="og:description" content="Install, run, and control the Nocturn agent from your terminal, your chat apps, or the desktop app.">
-  <meta property="og:url" content="https://nocturnh.com/docs.html">
+  <meta property="og:url" content="https://nocturnh.com/docs">
+  <link rel="canonical" href="https://nocturnh.com/docs">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Nocturn">
+  <meta property="og:image" content="https://nocturnh.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nocturnh.com/og.png">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="/icon.png" type="image/png">
@@ -457,7 +463,7 @@ Issued: 2026-11-03T12:00:00.000Z</code></pre>
 <pre><code><span class="p">$</span> nocturn site build --out site
 <span class="p">$</span> npx wrangler deploy</code></pre>
         <p>On Windows PowerShell use <code>npx.cmd wrangler deploy</code>, since PowerShell blocks <code>npx.ps1</code> by default. <code>wrangler.jsonc</code> serves <code>site/</code> as a Cloudflare Worker with static assets on <code>nocturnh.com</code> and <code>www.nocturnh.com</code>. Any other static host works: upload the folder and keep the headers.</p>
-        <p>The public site has no gateway, so the Connect wallet button only connects, the Trusted by section comes from the file written at build time, and the numbers in the “Remembers how you like things” tile stay at zero. Set the token contract in <code>TOKEN.contract</code> in <code>public/demo.js</code> once it is deployed.</p>
+        <p>The public site has no gateway, so the Connect wallet button only connects, the Trusted by section comes from the file written at build time, and the numbers in the “Remembers how you like things” tile stay at zero. The token contract and the official X account are published from the admin page at <code>/admin</code>, which needs the admin password set on the Worker.</p>
       </section>
 
       <!-- 12 -->

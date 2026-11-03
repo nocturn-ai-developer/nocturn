@@ -6,8 +6,22 @@ import { bloomingFlower, tesseract } from '/four.js';
 
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Fill in the contract address once the token is deployed.
+// The contract address and the X account are published from the admin page (nocturnh.com/admin)
+// and read from /api/site. On a local gateway that route does not exist, so the defaults stay.
 const TOKEN = { ticker: '$NCTRN', contract: '' };
+const site = fetch('/api/site').then((r) => (r.ok ? r.json() : {}), () => ({})).then((s) => ({
+  contract: typeof s?.contract === 'string' && /^0x[0-9a-fA-F]{40}$/.test(s.contract) ? s.contract : '',
+  twitter: typeof s?.twitter === 'string' && /^[A-Za-z0-9_]{1,15}$/.test(s.twitter) ? s.twitter : '',
+}));
+
+// A link to the official X account that appears once the admin has set one.
+export function xLink(className = 'foot-link') {
+  const a = el('a', `${className} hidden`, 'X');
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  site.then(({ twitter }) => { if (twitter) { a.href = `https://x.com/${twitter}`; a.textContent = `@${twitter}`; a.classList.remove('hidden'); } });
+  return a;
+}
 
 function el(tag, className, ...children) {
   const node = document.createElement(tag);
@@ -534,25 +548,29 @@ function buildToken() {
     note.textContent = '';
     try { await useRobinhoodChain(); note.textContent = 'Your wallet is on Robinhood Chain.'; } catch (err) { note.textContent = err?.code === 4001 ? 'You canceled in your wallet.' : err.message; }
   });
-  const contract = TOKEN.contract
-    ? el('a', 'mono', TOKEN.contract)
-    : el('span', 'token-pending', 'Not deployed yet');
-  if (TOKEN.contract) {
-    contract.href = `${CHAIN.blockExplorerUrls[0]}/address/${TOKEN.contract}`;
-    contract.target = '_blank';
-    contract.rel = 'noopener noreferrer';
-  }
+  const contract = el('span', 'token-pending', 'Not deployed yet');
+  const number = el('div', 'glass-card-number', '0x···· not deployed');
+  const follow = xLink('btn');
+  site.then(({ contract: address }) => {
+    if (!address) return;
+    const link = el('a', 'mono', address);
+    link.href = `${CHAIN.blockExplorerUrls[0]}/address/${address}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    contract.replaceWith(link);
+    number.textContent = `${address.slice(0, 6)} ···· ${address.slice(-4)}`;
+  });
   const row = (label, value) => el('div', 'token-row', el('span', '', label), value);
   const section = el('section', 'token reveal',
     el('div', 'token-copy',
       el('span', 'pill', 'Token'),
       el('h2', 'token-ticker', TOKEN.ticker),
       el('p', '', 'The Nocturn token, launching on Robinhood Chain.'),
-      el('div', 'actions', add), note),
+      el('div', 'actions', add, follow), note),
     el('div', 'token-art',
       el('div', 'glass-card',
         el('div', 'glass-card-top', el('b', '', TOKEN.ticker), el('span', 'glass-chip')),
-        el('div', 'glass-card-number', TOKEN.contract ? `${TOKEN.contract.slice(0, 6)} ···· ${TOKEN.contract.slice(-4)}` : '0x···· not deployed'),
+        number,
         el('div', 'glass-card-foot', el('span', '', 'Robinhood Chain'), el('span', '', `ID ${parseInt(CHAIN.chainId, 16)}`)))),
     el('div', 'token-card',
       row('Ticker', el('b', '', TOKEN.ticker)),
@@ -596,14 +614,13 @@ function buildDownload() {
     button.setAttribute('aria-disabled', 'true');
     button.textContent = 'Coming soon';
     const card = el('article', 'dl-card tile reveal', el('span', 'dl-kind', p.kind), el('h3', '', p.name), el('p', '', p.note), el('div', 'actions', button));
-    if (p.key === 'mac' || p.key === 'android') card.append(el('small', 'dl-soon', 'Built on the next release.'));
     if (p.test()) card.append(el('span', 'dl-here', 'For this device'));
     return { card, button, key: p.key };
   });
   const web = el('article', 'dl-card tile reveal',
     el('span', 'dl-kind', 'Web app'), el('h3', '', 'Install from the browser'),
     el('p', '', 'Open your own gateway at 127.0.0.1:18790/panel.html and choose Install app. Same panel, no download, on any phone or desktop that can reach your gateway.'),
-    el('div', 'actions', (() => { const a = el('a', 'btn', 'Read how'); a.href = '/docs.html#apps'; return a; })()));
+    el('div', 'actions', (() => { const a = el('a', 'btn', 'Read how'); a.href = '/docs#apps'; return a; })()));
   const terminal = el('article', 'dl-card tile reveal',
     el('span', 'dl-kind', 'Terminal'), el('h3', '', 'npm'),
     el('p', '', 'The original. One package gives you the gateway, the CLI and the miner on Windows, macOS and Linux.'),
@@ -714,7 +731,7 @@ export function landing(actions) {
       marquee(IDEAS.slice(0, half), false), marquee(IDEAS.slice(half), true)),
     buildToken(),
     install,
-    el('footer', 'site-foot', el('span', '', '© Nocturn · nocturnh.com'), admin));
+    el('footer', 'site-foot', el('span', '', '© Nocturn · nocturnh.com'), xLink('foot-link'), (() => { const a = el('a', 'foot-link', 'Docs'); a.href = '/docs'; return a; })(), admin));
 
   const revealer = new IntersectionObserver((entries) => {
     for (const entry of entries) {

@@ -401,7 +401,8 @@ h1, h2, h3 { margin: 0; font-weight: 500; letter-spacing: -.03em; }
 .install-box { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
 .install-code { min-width: 0; margin: 0; overflow-x: auto; color: var(--soft); font: 13.5px/1.7 var(--mono); }
 .wordmark { margin: clamp(30px, 5cqw, 60px) 0 0; color: var(--paper); font-size: 19cqw; font-weight: 800; line-height: .78; letter-spacing: .02em; white-space: nowrap; user-select: none; -webkit-text-stroke: 1px var(--line-strong); }
-.site-foot { display: flex; justify-content: space-between; padding: 18px 4px 26px; color: var(--muted); font-size: 12px; }
+.site-foot { display: flex; align-items: center; gap: 18px; padding: 18px 4px 26px; color: var(--muted); font-size: 12px; }
+.site-foot > span:first-child { flex: 1; }
 .foot-link { padding: 0; border: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; }
 .foot-link:hover { color: var(--text); }
 

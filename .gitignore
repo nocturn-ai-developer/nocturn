@@ -7,3 +7,4 @@ site/
 mobile/node_modules/
 mobile/android/
 *.log
+marketing/

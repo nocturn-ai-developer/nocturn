@@ -50,8 +50,8 @@
     "pool": "",
     "downloads": {
       "windows": "https://nocturnh.com/download/Nocturn-Setup-0.2.1.exe",
-      "mac": "",
-      "android": ""
+      "mac": "https://nocturnh.com/download/Nocturn-0.2.1.dmg",
+      "android": "https://nocturnh.com/download/Nocturn-0.2.1.apk"
     }
   },
   "build": {

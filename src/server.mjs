@@ -63,7 +63,8 @@ function trustedRequest(req) {
 
 function serveStatic(pathname, res) {
   const rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname.slice(1));
-  const file = resolve(PUBLIC_DIR, rel);
+  let file = resolve(PUBLIC_DIR, rel);
+  if (!extname(file) && existsSync(`${file}.html`)) file = `${file}.html`; // /docs -> docs.html, as on the public site
   if (!file.startsWith(PUBLIC_DIR + sep) || !existsSync(file) || !statSync(file).isFile()) {
     return send(res, 404, { error: 'Not found' });
   }
