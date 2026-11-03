@@ -134,7 +134,7 @@ function buildDemo() {
   const root = el('section', 'demo',
     el('div', 'demo-bar', tabs, el('span', 'demo-bar-end', el('span', 'demo-sim', 'Simulation'), trigger, stepLabel, pauseBtn)),
     el('div', 'demo-progress', bar),
-    el('div', 'demo-grid', window_, phone));
+    el('div', 'demo-grid', window_, el('div', 'phone-shell', el('i', 'phone-btn action'), el('i', 'phone-btn vol-up'), el('i', 'phone-btn vol-down'), el('i', 'phone-btn power'), phone)));
   const setStep = (done, total) => {
     bar.style.width = `${(done / total) * 100}%`;
     stepLabel.textContent = `${done}/${total}`;
