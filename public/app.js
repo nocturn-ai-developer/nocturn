@@ -269,5 +269,54 @@ async function startPublic() {
   renderShell();
 }
 
+/* Boot screen: a short, skippable boot log, once per tab */
+function bootScreen() {
+  const boot = document.getElementById('boot');
+  if (!boot) return Promise.resolve();
+  let seen = false;
+  try { seen = sessionStorage.getItem('nocturn-booted') === '1'; } catch { /* private window */ }
+  if (seen || reducedMotion) { boot.classList.add('skip'); return Promise.resolve(); }
+  try { sessionStorage.setItem('nocturn-booted', '1'); } catch { /* ignore */ }
+  const log = boot.querySelector('.boot-log');
+  const bar = boot.querySelector('.boot-bar i');
+  const steps = [
+    ['dim', 'nocturn gateway 0.2.2'],
+    ['', 'mounting ~/.nocturn/workspace'],
+    ['', 'loading tools', '13 ready'],
+    ['', 'search index', 'embeddings + bm25'],
+    ['', 'channels', 'telegram · discord · slack'],
+    ['', 'policies', 'asks before acting'],
+    ['accent', 'ready. your machine works the night shift.'],
+  ];
+  let finished = false;
+  let resolveDone;
+  const done = new Promise((r) => { resolveDone = r; });
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    boot.classList.add('done');
+    boot.setAttribute('aria-hidden', 'true');
+    setTimeout(() => { boot.remove(); resolveDone(); }, 520);
+  };
+  boot.addEventListener('click', finish);
+  addEventListener('keydown', finish, { once: true });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  (async () => {
+    for (let i = 0; i < steps.length && !finished; i++) {
+      const [cls, text, result] = steps[i];
+      const line = h('span', { class: `${cls} cursor` }, '');
+      log.append(line, '\n');
+      for (const ch of text) { if (finished) break; line.textContent += ch; await wait(text.length > 30 ? 9 : 16); }
+      if (result) { await wait(90); line.append(h('span', { class: 'ok' }, `  ${result}`)); }
+      line.classList.remove('cursor');
+      bar.style.width = `${((i + 1) / steps.length) * 100}%`;
+      await wait(i === steps.length - 1 ? 520 : 110);
+    }
+    finish();
+  })();
+  return done;
+}
+
+bootScreen();
 if (!token) startPublic();
 else start().catch(() => { store.remove('nocturn-token'); token = null; startPublic(); });
