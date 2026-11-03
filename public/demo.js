@@ -118,16 +118,23 @@ function buildDemo() {
   let paused = false;
   let visible = false;
 
+  // A desktop window (agent log + workspace) and a phone, like the real thing on your desk.
+  const lights = el('span', 'win-lights', el('i'), el('i'), el('i'));
+  const window_ = el('div', 'demo-window',
+    el('div', 'win-bar', lights, el('span', 'win-title', el('span', 'brand-mark win-mark'), 'Nocturn', el('small', '', '127.0.0.1:18790')), el('span', 'win-live', el('i'), 'live')),
+    el('div', 'win-panes',
+      el('div', 'demo-panel', el('div', 'demo-panel-head', el('span', '', 'Agent run'), el('small', 'demo-panel-sub', 'tool calls and approvals')), log),
+      el('div', 'demo-panel', el('div', 'demo-panel-head', el('span', '', 'Workspace'), el('small', 'demo-panel-sub', '~/.nocturn/workspace')), fileChips, fileName, fileBody, preview)),
+    el('div', 'win-foot', el('span', '', 'gateway · 127.0.0.1 only'), el('span', '', 'policy · asks before acting'), el('span', '', 'model · your choice')));
+  const phone = el('div', 'phone',
+    el('div', 'phone-status', el('span', '', '9:41'), el('span', 'phone-island'), el('span', 'phone-signal', el('i'), el('i'), el('i'), el('i'), el('b'))),
+    el('div', 'phone-head', el('span', 'phone-avatar', 'N'), el('div', '', el('b', '', 'Nocturn'), el('small', '', 'bot · simulated chat'))),
+    phoneBody,
+    el('div', 'phone-input', el('span', '', 'Message'), el('i')));
   const root = el('section', 'demo',
-    el('div', 'demo-bar', el('span', 'demo-sim', 'Simulation'), trigger, el('span', 'demo-bar-end', stepLabel, pauseBtn)),
+    el('div', 'demo-bar', tabs, el('span', 'demo-bar-end', el('span', 'demo-sim', 'Simulation'), trigger, stepLabel, pauseBtn)),
     el('div', 'demo-progress', bar),
-    el('div', 'demo-grid',
-      el('div', 'demo-panel', el('div', 'demo-panel-head', 'Agent run'), log),
-      el('div', 'demo-panel', el('div', 'demo-panel-head', 'Workspace'), fileChips, fileName, fileBody, preview),
-      el('div', 'phone',
-        el('div', 'phone-head', el('span', 'phone-avatar', 'N'), el('div', '', el('b', '', 'Nocturn'), el('small', '', 'bot · simulated chat'))),
-        phoneBody)),
-    tabs);
+    el('div', 'demo-grid', window_, phone));
   const setStep = (done, total) => {
     bar.style.width = `${(done / total) * 100}%`;
     stepLabel.textContent = `${done}/${total}`;
@@ -180,7 +187,8 @@ function buildDemo() {
       fileBody.classList.remove('hidden');
       log.append(el('div', 'demo-tool', el('div', 'demo-tool-row', el('b', '', 'write_file'), el('span', 'demo-hint', step.path), el('span', 'demo-state ok', 'done'))));
       for (const line of step.lines) {
-        fileBody.textContent += `${line}\n`;
+        const kind = /^\s*</.test(line) ? 'tag' : /^\s*(#|\/\/|-{2,}|\|)/.test(line) ? 'muted' : /^\s*\d+\./.test(line) ? 'list' : '';
+        fileBody.append(el('span', `demo-codeline ${kind}`, line || ' '));
         toBottom(fileBody);
         await sleep(110, id);
       }
